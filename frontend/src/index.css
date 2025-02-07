@@ -1,0 +1,46 @@
+
+/* Custom styles below */
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.hostel-card {
+    transition: transform 0.2s ease;
+}
+
+.hostel-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Custom styles for the hero section */
+.hero-section {
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8));
+}
+
+/* Custom styles for the search bar */
+.search-bar {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
