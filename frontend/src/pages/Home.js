@@ -15,7 +15,7 @@ const Home = () => {
           <div className="flex space-x-8">
             <a href="#" className="text-black font-semibold text-lg">Home</a>
             <a href="./hostel/" className="text-gray-600 text-lg">Hostels</a>
-            <a href="#" className="text-gray-600 text-lg">Rooms</a>
+            <a href="./room/" className="text-gray-600 text-lg">Rooms</a>
           </div>
         </div>
         <div className="flex items-center gap-6">

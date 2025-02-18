@@ -5,6 +5,7 @@ import './App.css';
 import Home from './pages/Home';
 import './index.css';
 import Hostel from './pages/Hostel';
+import Room from './pages/Room';
 
 function App() {
   return (
@@ -14,7 +15,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
         <Route path="/hostel" element={<Hostel />} />
-        
+        <Route path="/room" element={<Room />} />
       </Routes>
     </div>
   );
