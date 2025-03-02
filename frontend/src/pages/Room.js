@@ -100,9 +100,7 @@ const RoomPage = () => {
             </div>
             <div className="relative">
               <img src="/api/placeholder/200/200" alt="Room" className="w-full h-full object-cover rounded-lg" />
-              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                <span className="text-white text-lg font-semibold">+2 Photos</span>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -131,12 +129,12 @@ const RoomPage = () => {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-8">
-            {[1, 2, 3, 4].map((num) => (
+            {[1, 2].map((num) => (
               <div key={num} className="border-b pb-4">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="h-10 w-10 rounded-full bg-gray-200"></div>
                   <div>
-                    <h3 className="font-medium">John Dickerson</h3>
+                    <h3 className="font-medium">Ram</h3>
                     <div className="flex text-yellow-400 text-sm">★★★★★</div>
                   </div>
                 </div>
@@ -147,7 +145,7 @@ const RoomPage = () => {
               </div>
             ))}
           </div>
-          <button className="mt-4 text-blue-600 font-medium">View all Reviews</button>
+          <button className="mt-4 text-blue-600 font-medium">Add review</button>
         </div>
       </main>
 
