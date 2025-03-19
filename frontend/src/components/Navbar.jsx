@@ -1,18 +1,28 @@
+// Navbar.jsx
 import React from 'react';
 import { Search } from 'lucide-react';
-import HostelKhojauLogo from '../assets/HostelKhojauLogo.png';
+import { Link } from 'react-router-dom';
+import HostelKhojauLogo from '../assets/HostelKhojauLogo.png'; // Ensure this path is correct
 
 const Navbar = () => {
   return (
     <nav className="sticky top-0 flex items-center justify-between py-4 px-8 bg-white border-b">
       <div className="flex items-center gap-12">
         <div className="flex items-center">
-          <img src={HostelKhojauLogo} alt="Logo" className="h-10" />
+          {/* Replace with placeholder if image not loading */}
+          {HostelKhojauLogo ? (
+            <img src={HostelKhojauLogo} alt="Logo" className="h-10" />
+          ) : (
+            <div className="h-10 w-10 bg-gray-300 flex items-center justify-center rounded">
+              <span>Logo</span>
+            </div>
+          )}
         </div>
         <div className="flex space-x-8">
-          <a href="./pages/Home" className="text-black font-semibold text-lg">Home</a>
-          <a href="./pages/hostel/" className="text-gray-600 text-lg">Hostels</a>
-          <a href="./pages/room/" className="text-gray-600 text-lg">Rooms</a>
+          {/* Fix navigation links to use React Router properly */}
+          <Link to="/" className="text-black font-semibold text-lg">Home</Link>
+          <Link to="/hostel" className="text-gray-600 text-lg">Hostels</Link>
+          <Link to="/room" className="text-gray-600 text-lg">Rooms</Link>
         </div>
       </div>
       
@@ -48,4 +58,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
