@@ -43,7 +43,7 @@ const HostelPage = () => {
       <main className="max-w-7xl mx-auto px-8 py-6">
         {/* Hostels Near You Section */}
         <section>
-          <h2 className="text-lg font-semibold mb-4">Hostels Near You</h2>
+          <h2 className="text-lg font-semibold mb-4">Hostels Connected With Us</h2>
           <div className="grid grid-cols-3 gap-6 mb-8">
             <div className="col-span-1">
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
