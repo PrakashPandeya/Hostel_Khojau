@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import HeroImage from '../assets/HeroImage.jpg';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/Navbar'; // Import the Navbar component
 import Footer from '../components/Footer';
 
 const Home = () => {
@@ -16,7 +16,7 @@ const Home = () => {
         <div className="py-8">
           <div className="flex items-stretch gap-8">
             <div className="w-1/2 bg-gray-50 p-12 rounded-lg flex flex-col justify-center">
-              <h1 className="text-5xl font-bold mb-4">Looking for a place to Accomodate</h1>
+              <h1 className="text-5xl font-bold mb-4">Looking for a place to Accommodate</h1>
               <p className="text-gray-600 mb-8 text-lg">Explore hostels on Hostel Khojau</p>
               <button className="bg-red-500 text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-red-600 transition-colors w-fit">
                 View Hostels
