@@ -21,37 +21,17 @@ function Signup() {
         setSignupInfo(copySignupInfo);
     };
 
-    const handleSignup = async (e) => {
+    const handleSignup = (e) => {
         e.preventDefault();
         const { name, email, password } = signupInfo;
         if (!name || !email || !password) {
-            return handleError('name, email and password are required');
+            return handleError('Name, email, and password are required');
         }
-        try {
-            const url = `https://deploy-mern-app-1-api.vercel.app/auth/signup`;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(signupInfo)
-            });
-            const result = await response.json();
-            const { success, message, error } = result;
-            if (success) {
-                handleSuccess(message);
-                setTimeout(() => {
-                    navigate('/login');
-                }, 1000);
-            } else if (error) {
-                const details = error?.details[0].message;
-                handleError(details);
-            } else if (!success) {
-                handleError(message);
-            }
-        } catch (err) {
-            handleError(err);
-        }
+        // Simulate a successful signup
+        handleSuccess('Signup successful!');
+        setTimeout(() => {
+            navigate('/login');
+        }, 1000);
     };
 
     return (

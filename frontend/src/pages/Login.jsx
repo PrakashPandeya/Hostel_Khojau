@@ -20,39 +20,18 @@ function Login() {
         setLoginInfo(copyLoginInfo);
     };
 
-    const handleLogin = async (e) => {
+    const handleLogin = (e) => {
         e.preventDefault();
         const { email, password } = loginInfo;
         if (!email || !password) {
-            return handleError('email and password are required');
+            return handleError('Email and password are required');
         }
-        try {
-            const url = `https://deploy-mern-app-1-api.vercel.app/auth/login`;
-            const response = await fetch(url, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(loginInfo)
-            });
-            const result = await response.json();
-            const { success, message, jwtToken, name, error } = result;
-            if (success) {
-                handleSuccess(message);
-                localStorage.setItem('token', jwtToken);
-                localStorage.setItem('loggedInUser', name);
-                setTimeout(() => {
-                    navigate('/Home');
-                }, 1000);
-            } else if (error) {
-                const details = error?.details[0].message;
-                handleError(details);
-            } else if (!success) {
-                handleError(message);
-            }
-        } catch (err) {
-            handleError(err);
-        }
+        // Simulate a successful login
+        handleSuccess('Login successful!');
+        localStorage.setItem('loggedInUser', email); // Store the email as the logged-in user
+        setTimeout(() => {
+            navigate('/Home');
+        }, 1000);
     };
 
     return (
