@@ -116,7 +116,7 @@ const HostelPage = () => {
                 <div className="p-4">
                   <h3 className="font-medium">{hostel.name}</h3>
                   <p className="text-sm text-gray-600">{hostel.city}</p>
-                  <button className="w-full bg-red-500 text-white py-2 rounded-md mt-2">View More</button>
+                  <button className="w-full bg-red-500 text-white py-2 rounded-md mt-2">View Rooms</button>
                 </div>
               </div>
             ))}

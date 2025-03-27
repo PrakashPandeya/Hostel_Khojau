@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import HeroImage from '../assets/HeroImage.jpg';
-import Navbar from '../components/Navbar'; // Import the Navbar component
+import Navbar from '../components/Navbar'; 
 import Footer from '../components/Footer';
 
 const Home = () => {
