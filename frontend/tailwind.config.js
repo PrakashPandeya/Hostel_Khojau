@@ -5,12 +5,6 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-module.exports = {
-  theme: {
     extend: {
       fontFamily: {
         poppins: ['Poppins', 'sans-serif'],
