@@ -1,10 +1,13 @@
 import React from 'react';
 import { Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; 
 import HeroImage from '../assets/HeroImage.jpg';
 import Navbar from '../components/Navbar'; 
 import Footer from '../components/Footer';
 
 const Home = () => {
+  const navigate = useNavigate(); 
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -18,7 +21,10 @@ const Home = () => {
             <div className="w-1/2 bg-gray-50 p-12 rounded-lg flex flex-col justify-center">
               <h1 className="text-5xl font-bold mb-4">Looking for a place to Accommodate</h1>
               <p className="text-gray-600 mb-8 text-lg">Explore hostels on Hostel Khojau</p>
-              <button className="bg-red-500 text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-red-600 transition-colors w-fit">
+              <button 
+                onClick={() => navigate('/hostel')}
+                className="bg-red-500 text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-red-600 transition-colors w-fit"
+              >
                 View Hostels
               </button>
             </div>
@@ -84,6 +90,20 @@ const Home = () => {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Register Hostel Section */}
+        <div className="bg-blue-50 rounded-lg p-8 mb-12 text-center">
+          <h2 className="text-2xl font-bold mb-2">Register a Hostel for Free?</h2>
+          <p className="text-gray-600 mb-6 text-lg">
+            "Get your Hostel Online at our website by registering Here for Free!"
+          </p>
+          <button
+            onClick={() => navigate('/register-hostel')} // Update with your actual registration route
+            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-full transition-colors"
+          >
+            Register Here
+          </button>
         </div>
       </main>
 
