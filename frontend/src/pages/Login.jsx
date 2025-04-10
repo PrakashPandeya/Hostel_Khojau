@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { handleError, handleSuccess } from '../utils';
 import loginImage from '../assets/login.jpg';
+import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 
 function Login() {
@@ -15,23 +16,42 @@ function Login() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        const copyLoginInfo = { ...loginInfo };
-        copyLoginInfo[name] = value;
-        setLoginInfo(copyLoginInfo);
+        setLoginInfo(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         const { email, password } = loginInfo;
+        
         if (!email || !password) {
             return handleError('Email and password are required');
         }
-        // Simulate a successful login
-        handleSuccess('Login successful!');
-        localStorage.setItem('loggedInUser', email); // Store the email as the logged-in user
-        setTimeout(() => {
-            navigate('/Home');
-        }, 1000);
+
+        try {
+            const response = await axios.post('http://localhost:5000/api/auth/signin', {
+                email,
+                password
+            });
+            
+            const { token, user } = response.data;
+            
+            handleSuccess(`Welcome back, ${user.name}!`);
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            // Redirect based on role
+            setTimeout(() => {
+                if (user.role === 'admin') {
+                    navigate('/admin/dashboard');
+                } else if (user.role === 'owner') {
+                    navigate('/owner/hostels');
+                } else {
+                    navigate('/home');
+                }
+            }, 1000);
+        } catch (error) {
+            handleError(error.response?.data?.message || 'Login failed');
+        }
     };
 
     return (
@@ -49,6 +69,7 @@ function Login() {
                                 placeholder="Enter your email..."
                                 value={loginInfo.email}
                                 className="w-full mb-4 p-2 border border-gray-300 rounded"
+                                required
                             />
                         </div>
                         <div>
@@ -60,6 +81,7 @@ function Login() {
                                 placeholder="Enter your password..."
                                 value={loginInfo.password}
                                 className="w-full mb-4 p-2 border border-gray-300 rounded"
+                                required
                             />
                         </div>
                         <button 
