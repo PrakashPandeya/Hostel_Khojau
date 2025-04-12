@@ -1,29 +1,58 @@
-// backend/routes/hostelRoutes.js
 const express = require('express');
-const Hostel = require('../models/Hostel');
 const router = express.Router();
+const Hostel = require('../models/Hostel');
 
-// Fetch hostels with filters
+// Get all hostels (with optional featured filter)
 router.get('/', async (req, res) => {
   try {
-    const filters = req.query;
-    const hostels = await Hostel.find(filters);
+    const { featured } = req.query;
+    let query = {};
+    
+    if (featured) {
+      query.isFeatured = featured === 'true';
+    }
+    
+    const hostels = await Hostel.find(query);
     res.json(hostels);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching hostels', error });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
-// Add a new hostel (optional)
-router.post('/', async (req, res) => {
+// Get single hostel
+router.get('/:id', async (req, res) => {
   try {
-    const newHostel = new Hostel(req.body);
-    await newHostel.save();
-    res.status(201).json(newHostel);
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating hostel', error });
+    const hostel = await Hostel.findById(req.params.id);
+    if (!hostel) {
+      return res.status(404).json({ message: 'Hostel not found' });
+    }
+    res.json(hostel);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
-// Export the router
+// Create hostel (admin only)
+router.post('/', async (req, res) => {
+  const hostel = new Hostel({
+    name: req.body.name,
+    location: req.body.location,
+    city: req.body.city,
+    description: req.body.description,
+    hostelType: req.body.hostelType,
+    priceRange: req.body.priceRange,
+    amenities: req.body.amenities,
+    images: req.body.images,
+    isFeatured: req.body.isFeatured || false,
+    contact: req.body.contact
+  });
+
+  try {
+    const newHostel = await hostel.save();
+    res.status(201).json(newHostel);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 module.exports = router;
