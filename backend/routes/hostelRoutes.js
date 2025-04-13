@@ -44,7 +44,8 @@ router.post('/', async (req, res) => {
     amenities: req.body.amenities,
     images: req.body.images,
     isFeatured: req.body.isFeatured || false,
-    contact: req.body.contact
+    contact: req.body.contact,
+    ownername: req.body.ownername
   });
 
   try {

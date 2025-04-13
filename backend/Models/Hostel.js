@@ -19,7 +19,7 @@ const hostelSchema = new mongoose.Schema({
   },
   hostelType: {
     type: String,
-    enum: ['Boys Hostel', 'Girls Hostel', ],
+    enum: ['Boys Hostel', 'Girls Hostel', 'Co-ed'],
     required: true
   },
   priceRange: {
@@ -28,10 +28,28 @@ const hostelSchema = new mongoose.Schema({
   },
   amenities: [String],
   images: [String],
+  images360: [{
+    type: String, 
+    validate: {
+      validator: function(v) {
+        return /^https?:\/\//.test(v); // Simple URL validation
+      },
+      message: props => `${props.value} is not a valid URL!`
+    }
+  }],
   isFeatured: {
     type: Boolean,
     default: false
   },
+  ownername: {
+    type: String,
+    required: true
+  },
+  mapEmbedUrl: {
+    type: String,
+    required: true
+  },
+  
   contact: {
     phone: String,
     email: String

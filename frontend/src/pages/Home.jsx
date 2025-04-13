@@ -4,6 +4,9 @@ import axios from 'axios';
 import HeroImage from '../assets/HeroImage.jpg';
 import Navbar from '../components/Navbar'; 
 import Footer from '../components/Footer';
+import RegisterHostel  from '../components/RegisterHostel';
+
+
 
 const Home = () => {
   const navigate = useNavigate();
@@ -29,7 +32,7 @@ const Home = () => {
         setLoading(prev => ({...prev, featured: true}));
         const response = await axios.get('http://localhost:5000/api/hostels?featured=true');
         setFeaturedHostels(response.data);
-        setFilteredHostels(response.data); // Initialize with featured hostels
+        setFilteredHostels(response.data);
       } catch (error) {
         console.error('Error fetching featured hostels:', error);
       } finally {
@@ -40,7 +43,7 @@ const Home = () => {
     fetchFeaturedHostels();
   }, []);
 
-  // Fetch all hostels when filters are applied (except initial load)
+  // Fetch all hostels when filters are applied
   useEffect(() => {
     const fetchAllHostels = async () => {
       try {
@@ -55,7 +58,6 @@ const Home = () => {
       }
     };
 
-    // Check if any filter has a value (excluding initial empty state)
     const hasFilters = Object.values(filters).some(value => value !== '');
     if (hasFilters) {
       setIsSearching(true);
@@ -68,17 +70,33 @@ const Home = () => {
 
   const applyFilters = (hostelsToFilter) => {
     const filtered = hostelsToFilter.filter((hostel) => {
+      // Name filter (case insensitive)
       const matchesName = !filters.name || 
         hostel.name.toLowerCase().includes(filters.name.toLowerCase());
+      
+      // Location filter (case insensitive)
       const matchesLocation = !filters.location || 
         hostel.location.toLowerCase().includes(filters.location.toLowerCase());
-      const matchesType = !filters.hostelType || 
-        hostel.hostelType === filters.hostelType;
       
+      // Hostel type filter (exact match)
+      const matchesType = !filters.hostelType || 
+        hostel.hostelType.toLowerCase() === filters.hostelType.toLowerCase();
+      
+      // Price range filter
       let matchesPrice = true;
       if (filters.priceRange) {
         const [min, max] = filters.priceRange.split('-').map(Number);
-        matchesPrice = hostel.priceRange.min >= min && hostel.priceRange.max <= max;
+        
+        // Check both possible price structures
+        if (hostel.price) {
+          // Single price value
+          matchesPrice = hostel.price >= min && hostel.price <= max;
+        } else if (hostel.priceRange) {
+          // Price range object
+          matchesPrice = hostel.priceRange.min <= max && hostel.priceRange.max >= min;
+        } else {
+          matchesPrice = false;
+        }
       }
 
       return matchesName && matchesLocation && matchesType && matchesPrice;
@@ -88,7 +106,10 @@ const Home = () => {
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters({ ...filters, [name]: value });
+    setFilters(prev => ({ 
+      ...prev, 
+      [name]: value 
+    }));
   };
 
   const handleReset = () => {
@@ -155,8 +176,8 @@ const Home = () => {
               className="w-full px-4 py-2 border rounded-lg"
             >
               <option value="">Select Hostel Type</option>
-              <option value="Male">Boys Hostel</option>
-              <option value="Female">Girls Hostel</option>
+              <option value="Boys Hostel">Boys Hostel</option>
+              <option value="Girls Hostel">Girls Hostel</option>
             </select>
             <select 
               name="priceRange" 
@@ -165,13 +186,13 @@ const Home = () => {
               className="w-full px-4 py-2 border rounded-lg"
             >
               <option value="">Price Range</option>
-              <option value="10000-12000">10000-12000</option>
-              <option value="10000-15000">10000-15000</option>
-              <option value="12000-15000">12000-15000</option>
+              <option value="10000-12000">Rs. 10,000 - Rs. 12,000</option>
+              <option value="10000-15000">Rs. 10,000 - Rs. 15,000</option>
+              <option value="12000-15000">Rs. 12,000 - Rs. 15,000</option>
             </select>
             <button 
               onClick={handleReset} 
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg"
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               Reset
             </button>
@@ -198,12 +219,12 @@ const Home = () => {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredHostels.slice(0, isSearching ? filteredHostels.length : 3).map((hostel) => (
-                  <div key={hostel._id} className={`bg-white rounded-lg shadow-md ${!isSearching && 'border-2 border-yellow-400'}`}>
-                    <div className="relative">
+                  <div key={hostel._id} className={`bg-white rounded-lg shadow-md overflow-hidden ${!isSearching && 'border-2 border-yellow-400'}`}>
+                    <div className="relative h-48">
                       <img 
                         src={hostel.images?.[0] || 'https://via.placeholder.com/400x300'} 
                         alt={hostel.name} 
-                        className="w-full h-48 object-cover"
+                        className="w-full h-full object-cover"
                       />
                       {!isSearching && (
                         <div className="absolute top-2 left-2 bg-yellow-400 text-black px-2 py-1 rounded text-xs font-bold">
@@ -217,10 +238,15 @@ const Home = () => {
                         <span className="font-medium">Location:</span> {hostel.location}, {hostel.city}
                       </p>
                       <p className="text-gray-600 text-sm mb-2">
-                        <span className="font-medium">Type:</span> {hostel.hostelType}
+                        <span className="font-medium">Type:</span> {hostel.hostelType === 'Boys' ? 'Boys Hostel' : 'Girls Hostel'}
                       </p>
                       <p className="text-gray-600 text-sm mb-3">
-                        <span className="font-medium">Price:</span> Rs. {hostel.priceRange.min} - Rs. {hostel.priceRange.max}
+                        <span className="font-medium">Price:</span> 
+                        {hostel.price ? 
+                          `Rs. ${hostel.price.toLocaleString()}` : 
+                          hostel.priceRange ? 
+                          `Rs. ${hostel.priceRange.min?.toLocaleString()} - Rs. ${hostel.priceRange.max?.toLocaleString()}` : 
+                          'N/A'}
                       </p>
                       <button 
                         onClick={() => navigate(`/hostels/${hostel._id}`)}
@@ -236,7 +262,7 @@ const Home = () => {
                 <div className="text-center mt-6">
                   <button 
                     onClick={() => navigate('/hostel')}
-                    className="bg-red-500 text-white px-6 py-2 rounded-lg"
+                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors"
                   >
                     View All Hostels
                   </button>
@@ -245,20 +271,9 @@ const Home = () => {
             </>
           )}
         </div>
-
-        {/* Register Hostel Section */}
-        <div className="bg-blue-50 rounded-lg p-8 mb-12 text-center">
-          <h2 className="text-2xl font-bold mb-2">Register a Hostel for Free?</h2>
-          <p className="text-gray-600 mb-6 text-lg">
-            "Get your Hostel Online at our website by registering Here for Free!"
-          </p>
-          <button
-            onClick={() => navigate('/register-hostel')}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-full transition-colors"
-          >
-            Register Here
-          </button>
-        </div>
+        
+        <RegisterHostel />
+        
       </main>
       <Footer />
     </div>

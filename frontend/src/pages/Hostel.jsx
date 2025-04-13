@@ -3,6 +3,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import RegisterHostel  from '../components/RegisterHostel';
+
 
 const HostelPage = () => {
   const [hostels, setHostels] = useState([]);
@@ -47,20 +49,7 @@ const HostelPage = () => {
             </div>
           )}
         </div>
-
-      {/* Register Hostel Section */}
-        <div className="bg-blue-50 rounded-lg p-8 mb-12 text-center">
-          <h2 className="text-2xl font-bold mb-2">Register a Hostel for Free?</h2>
-          <p className="text-gray-600 mb-6 text-lg">
-            "Get your Hostel Online at our website by registering Here for Free!"
-          </p>
-          <button
-            onClick={() => navigate('/register-hostel')}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-full transition-colors"
-          >
-            Register Here
-          </button>
-        </div>  
+      <RegisterHostel />
       </main>
 
       <Footer />
