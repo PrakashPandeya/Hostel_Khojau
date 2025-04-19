@@ -23,9 +23,13 @@ const userSchema = new mongoose.Schema({
     isApproved: {
         type: Boolean,
         default: function() {
-            return this.role === 'user'; // Users are auto-approved, owners need admin approval
+            return this.role === 'user';
         }
     },
+    ownedHostels: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Hostel'
+    }],
     createdAt: {
         type: Date,
         default: Date.now
