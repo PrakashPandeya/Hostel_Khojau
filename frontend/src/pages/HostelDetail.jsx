@@ -19,7 +19,7 @@ const HostelDetails = () => {
   const [bookingForm, setBookingForm] = useState({
     roomId: '',
     checkInDate: '',
-    checkOutDate: ''
+    checkOutDate: '',
   });
 
   useEffect(() => {
@@ -28,8 +28,9 @@ const HostelDetails = () => {
         setLoading(true);
         const [hostelResponse, roomsResponse] = await Promise.all([
           axios.get(`http://localhost:5000/api/hostels/${id}`),
-          axios.get(`http://localhost:5000/api/hostels/${id}/rooms`)
+          axios.get(`http://localhost:5000/api/hostels/${id}/rooms`),
         ]);
+        console.log('Hostel details:', hostelResponse.data); // Debug log
         setHostel(hostelResponse.data);
         setRooms(roomsResponse.data);
       } catch (err) {
@@ -44,7 +45,7 @@ const HostelDetails = () => {
 
   const handleBookingChange = (e) => {
     const { name, value } = e.target;
-    setBookingForm(prev => ({ ...prev, [name]: value }));
+    setBookingForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleBookNow = async () => {
@@ -60,7 +61,7 @@ const HostelDetails = () => {
         `http://localhost:5000/api/bookings/${id}/book`,
         bookingForm,
         {
-          headers: { 'x-auth-token': token }
+          headers: { 'x-auth-token': token },
         }
       );
       window.location.href = response.data.paymentUrl;
@@ -106,9 +107,10 @@ const HostelDetails = () => {
   }
 
   const totalReviews = hostel.reviews?.length || 0;
-  const averageRating = hostel.reviews?.length > 0 
-    ? (hostel.reviews.reduce((sum, review) => sum + review.rating, 0) / hostel.reviews.length).toFixed(1)
-    : 0;
+  const averageRating =
+    hostel.reviews?.length > 0
+      ? (hostel.reviews.reduce((sum, review) => sum + review.rating, 0) / hostel.reviews.length).toFixed(1)
+      : 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -125,7 +127,7 @@ const HostelDetails = () => {
                 <span className="font-medium">Phone:</span> {hostel.contact.phone}
               </div>
             )}
-            <div className="bg-gray-100 px-4 py-2 rounded-lg">
+            <div className snatched="bg-gray-100 px-4 py-2 rounded-lg">
               <span className="font-medium">Type:</span> {hostel.hostelType}
             </div>
             {hostel.contact?.email && (
@@ -133,9 +135,9 @@ const HostelDetails = () => {
                 <span className="font-medium">Email:</span> {hostel.contact.email}
               </div>
             )}
-            {hostel.owner && (
+            {(hostel.owner?.name || hostel.ownername) && (
               <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                <span className="font-medium">Owner:</span> {hostel.owner.name}
+                <span className="font-medium">Owner:</span> {hostel.owner?.name || hostel.ownername}
               </div>
             )}
           </div>
@@ -145,21 +147,39 @@ const HostelDetails = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Gallery</h2>
             {hostel.images360?.length > 0 && (
-              <button 
+              <button
                 onClick={() => setShow360(!show360)}
                 className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200"
               >
                 {show360 ? (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Show Photos
                   </>
                 ) : (
                   <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-7.536 5.879a1 1 0 001.415 0 3 3 0 014.242 0 1 1 0 001.415-1.415 5 5 0 00-7.072 0 1 1 0 000 1.415z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     Show 360° View
                   </>
@@ -172,7 +192,10 @@ const HostelDetails = () => {
             hostel.images360?.length > 0 ? (
               <div className="grid grid-cols-1 gap-6">
                 {hostel.images360.map((url, index) => (
-                  <div key={`360-${index}`} className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-lg">
+                  <div
+                    key={`360-${index}`}
+                    className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-lg"
+                  >
                     <iframe
                       src={`${url}?logo=0&info=0&fs=1&vr=0&thumbs=1`}
                       className="absolute inset-0 w-full h-full"
@@ -189,8 +212,19 @@ const HostelDetails = () => {
               </div>
             ) : (
               <div className="bg-gray-100 rounded-lg p-8 text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 mx-auto text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
                 <p className="mt-2 text-gray-500">No 360° images available</p>
               </div>
@@ -199,7 +233,10 @@ const HostelDetails = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {hostel.images?.length > 0 ? (
                 hostel.images.map((img, index) => (
-                  <div key={index} className="group relative rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
+                  <div
+                    key={index}
+                    className="group relative rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300"
+                  >
                     <img
                       src={img}
                       alt={`${hostel.name} - Photo ${index + 1}`}
@@ -213,8 +250,19 @@ const HostelDetails = () => {
                 ))
               ) : (
                 <div className="col-span-full bg-gray-100 rounded-lg p-8 text-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 mx-auto text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
                   </svg>
                   <p className="mt-2 text-gray-500">No photos available</p>
                 </div>
@@ -225,7 +273,11 @@ const HostelDetails = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
           <StatCard title="Rating" value={averageRating} icon="⭐" />
-          <StatCard title="Price Range" value={`Rs. ${hostel.priceRange.min} - Rs. ${hostel.priceRange.max}`} icon="💰" />
+          <StatCard
+            title="Price Range"
+            value={`Rs. ${hostel.priceRange.min} - Rs. ${hostel.priceRange.max}`}
+            icon="💰"
+          />
           <StatCard title="Reviews" value={totalReviews} icon="✍️" />
         </div>
 
@@ -270,7 +322,10 @@ const HostelDetails = () => {
               <p className="text-gray-700 mb-6">{hostel.description}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailCard title="Hostel Type" value={hostel.hostelType} />
-                <DetailCard title="Price Range" value={`Rs. ${hostel.priceRange.min} - Rs. ${hostel.priceRange.max}`} />
+                <DetailCard
+                  title="Price Range"
+                  value={`Rs. ${hostel.priceRange.min} - Rs. ${hostel.priceRange.max}`}
+                />
                 <DetailCard title="Location" value={`${hostel.location}, ${hostel.city}`} />
                 {hostel.contact?.phone && <DetailCard title="Contact" value={hostel.contact.phone} />}
               </div>
@@ -314,22 +369,20 @@ const HostelDetails = () => {
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-4">Location</h2>
             <div className="w-full h-96 rounded-lg overflow-hidden shadow-lg border border-gray-200">
-              <div 
-                dangerouslySetInnerHTML={{ __html: hostel.mapEmbedUrl }}
-              />
+              <div dangerouslySetInnerHTML={{ __html: hostel.mapEmbedUrl }} />
             </div>
           </div>
         )}
 
         <div className="flex flex-wrap gap-4 mb-8">
-          <button 
+          <button
             onClick={() => setShowBooking(!showBooking)}
             className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition duration-200"
           >
             {showBooking ? 'Cancel' : 'Book Now'}
           </button>
           {hostel.contact?.phone && (
-            <a 
+            <a
               href={`tel:${hostel.contact.phone}`}
               className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition duration-200"
             >
@@ -354,7 +407,7 @@ const HostelDetails = () => {
                     className="w-full px-4 py-2 border rounded-lg"
                   >
                     <option value="">Select a room</option>
-                    {rooms.map(room => (
+                    {rooms.map((room) => (
                       <option key={room._id} value={room._id}>
                         {room.roomNumber} ({room.roomType}) - Rs. {room.price}/night
                       </option>
@@ -425,15 +478,15 @@ const ReviewCard = ({ review }) => (
         <h4 className="font-medium">User {review.userId?.toString().slice(-4)}</h4>
         <div className="flex items-center">
           {[...Array(5)].map((_, i) => (
-            <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>★</span>
+            <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>
+              ★
+            </span>
           ))}
         </div>
       </div>
     </div>
     <p className="text-gray-700">{review.comment}</p>
-    <p className="text-gray-500 text-sm mt-2">
-      {new Date(review.createdAt).toLocaleDateString()}
-    </p>
+    <p className="text-gray-500 text-sm mt-2">{new Date(review.createdAt).toLocaleDateString()}</p>
   </div>
 );
 

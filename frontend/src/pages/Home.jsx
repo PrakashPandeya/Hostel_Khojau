@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import HeroImage from '../assets/HeroImage.jpg';
-import Navbar from '../components/Navbar'; 
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import RegisterHostel  from '../components/RegisterHostel';
-
-
+import RegisterHostel from '../components/RegisterHostel';
+import AboutUs from '../components/AboutUs';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -15,50 +16,53 @@ const Home = () => {
   const [filteredHostels, setFilteredHostels] = useState([]);
   const [loading, setLoading] = useState({
     featured: true,
-    all: false
+    all: false,
   });
   const [isSearching, setIsSearching] = useState(false);
   const [filters, setFilters] = useState({
     name: '',
     location: '',
+    city: '',
     hostelType: '',
     priceRange: '',
   });
 
-  // Fetch featured hostels on mount
   useEffect(() => {
     const fetchFeaturedHostels = async () => {
       try {
-        setLoading(prev => ({...prev, featured: true}));
+        setLoading((prev) => ({ ...prev, featured: true }));
         const response = await axios.get('http://localhost:5000/api/hostels?featured=true');
+        console.log('Featured hostels:', response.data);
         setFeaturedHostels(response.data);
         setFilteredHostels(response.data);
       } catch (error) {
         console.error('Error fetching featured hostels:', error);
+        toast.error('Error fetching featured hostels');
       } finally {
-        setLoading(prev => ({...prev, featured: false}));
+        setLoading((prev) => ({ ...prev, featured: false }));
       }
     };
 
     fetchFeaturedHostels();
   }, []);
 
-  // Fetch all hostels when filters are applied
   useEffect(() => {
     const fetchAllHostels = async () => {
       try {
-        setLoading(prev => ({...prev, all: true}));
+        setLoading((prev) => ({ ...prev, all: true }));
         const response = await axios.get('http://localhost:5000/api/hostels');
+        console.log('All hostels:', response.data);
         setAllHostels(response.data);
         applyFilters(response.data);
       } catch (error) {
-        console.error('Error fetching all hostels:', error);
+        console.error('Error fetching hostels:', error);
+        toast.error('Error fetching hostels');
       } finally {
-        setLoading(prev => ({...prev, all: false}));
+        setLoading((prev) => ({ ...prev, all: false }));
       }
     };
 
-    const hasFilters = Object.values(filters).some(value => value !== '');
+    const hasFilters = Object.values(filters).some((value) => value !== '');
     if (hasFilters) {
       setIsSearching(true);
       fetchAllHostels();
@@ -66,56 +70,44 @@ const Home = () => {
       setIsSearching(false);
       setFilteredHostels(featuredHostels);
     }
-  }, [filters]);
+  }, [filters, featuredHostels]);
 
   const applyFilters = (hostelsToFilter) => {
     const filtered = hostelsToFilter.filter((hostel) => {
-      // Name filter (case insensitive)
-      const matchesName = !filters.name || 
+      const matchesName =
+        !filters.name ||
         hostel.name.toLowerCase().includes(filters.name.toLowerCase());
-      
-      // Location filter (case insensitive)
-      const matchesLocation = !filters.location || 
+      const matchesLocation =
+        !filters.location ||
         hostel.location.toLowerCase().includes(filters.location.toLowerCase());
-      
-      // Hostel type filter (exact match)
-      const matchesType = !filters.hostelType || 
+      const matchesCity =
+        !filters.city ||
+        hostel.city.toLowerCase().includes(filters.city.toLowerCase());
+      const matchesType =
+        !filters.hostelType ||
         hostel.hostelType.toLowerCase() === filters.hostelType.toLowerCase();
-      
-      // Price range filter
       let matchesPrice = true;
       if (filters.priceRange) {
         const [min, max] = filters.priceRange.split('-').map(Number);
-        
-        // Check both possible price structures
-        if (hostel.price) {
-          // Single price value
-          matchesPrice = hostel.price >= min && hostel.price <= max;
-        } else if (hostel.priceRange) {
-          // Price range object
-          matchesPrice = hostel.priceRange.min <= max && hostel.priceRange.max >= min;
-        } else {
-          matchesPrice = false;
-        }
+        matchesPrice =
+          hostel.priceRange.min <= max && hostel.priceRange.max >= min;
       }
 
-      return matchesName && matchesLocation && matchesType && matchesPrice;
+      return matchesName && matchesLocation && matchesCity && matchesType && matchesPrice;
     });
     setFilteredHostels(filtered);
   };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ 
-      ...prev, 
-      [name]: value 
-    }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleReset = () => {
     setFilters({
       name: '',
       location: '',
+      city: '',
       hostelType: '',
       priceRange: '',
     });
@@ -127,155 +119,163 @@ const Home = () => {
     <div className="min-h-screen bg-white">
       <Navbar />
       <main className="max-w-7xl mx-auto px-8">
-        {/* Hero Section */}
         <div className="py-8">
           <div className="flex items-stretch gap-8">
             <div className="w-1/2 bg-gray-50 p-12 rounded-lg flex flex-col justify-center">
-              <h1 className="text-5xl font-bold mb-4">Looking for a place to Accommodate</h1>
-              <p className="text-gray-600 mb-8 text-lg">Explore hostels on Hostel Khojau</p>
-              <button 
+              <h1 className="text-5xl font-bold mb-4">
+                Find Your Perfect Hostel
+              </h1>
+              <p className="text-gray-600 mb-8 text-lg">
+                Discover the best hostels in Kathmandu and beyond with Hostel Khojau.
+              </p>
+              <button
                 onClick={() => navigate('/hostel')}
                 className="bg-red-500 text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-red-600 transition-colors w-fit"
               >
-                View Hostels
+                Explore Hostels
               </button>
             </div>
             <div className="w-1/2">
-              <img 
-                src={HeroImage} 
-                alt="Hostel illustration" 
+              <img
+                src={HeroImage}
+                alt="Hostel illustration"
                 className="w-full h-full object-cover rounded-lg"
               />
             </div>
           </div>
         </div>
 
-        {/* Search Filter Section */}
+        {/* Search Hostels Section */}
         <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-8">
-          <div className="flex items-center gap-4">
-            <input 
-              type="text" 
-              name="name" 
-              value={filters.name} 
-              onChange={handleFilterChange} 
-              placeholder="Hostel Name" 
-              className="w-full px-4 py-2 border rounded-lg" 
-            />
-            <input 
-              type="text" 
-              name="location" 
-              value={filters.location} 
-              onChange={handleFilterChange} 
-              placeholder="Location" 
-              className="w-full px-4 py-2 border rounded-lg" 
-            />
-            <select 
-              name="hostelType" 
-              value={filters.hostelType} 
-              onChange={handleFilterChange} 
-              className="w-full px-4 py-2 border rounded-lg"
-            >
-              <option value="">Select Hostel Type</option>
-              <option value="Boys Hostel">Boys Hostel</option>
-              <option value="Girls Hostel">Girls Hostel</option>
-            </select>
-            <select 
-              name="priceRange" 
-              value={filters.priceRange} 
-              onChange={handleFilterChange} 
-              className="w-full px-4 py-2 border rounded-lg"
-            >
-              <option value="">Price Range</option>
-              <option value="10000-12000">Rs. 10,000 - Rs. 12,000</option>
-              <option value="10000-15000">Rs. 10,000 - Rs. 15,000</option>
-              <option value="12000-15000">Rs. 12,000 - Rs. 15,000</option>
-            </select>
-            <button 
-              onClick={handleReset} 
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Reset
-            </button>
+          <h2 className="text-2xl font-semibold mb-4">Search Hostels</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hostel Name</label>
+              <input
+                type="text"
+                name="name"
+                value={filters.name}
+                onChange={handleFilterChange}
+                placeholder="Enter hostel name"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <input
+                type="text"
+                name="location"
+                value={filters.location}
+                onChange={handleFilterChange}
+                placeholder="Enter location"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input
+                type="text"
+                name="city"
+                value={filters.city}
+                onChange={handleFilterChange}
+                placeholder="e.g., Kathmandu"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hostel Type</label>
+              <select
+                name="hostelType"
+                value={filters.hostelType}
+                onChange={handleFilterChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-colors"
+              >
+                <option value="">Select Type</option>
+                <option value="Boys Hostel">Boys Hostel</option>
+                <option value="Girls Hostel">Girls Hostel</option>
+                <option value="Co-ed">Co-ed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Price Range</label>
+              <select
+                name="priceRange"
+                value={filters.priceRange}
+                onChange={handleFilterChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 transition-colors"
+              >
+                <option value="">Select Price Range</option>
+                <option value="10000-12000">NPR 10000 - 12000</option>
+                <option value="10000-15000">NPR 10000 - 15000</option>
+                <option value="12000-15000">NPR 12000 - 15000</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={handleReset}
+                className="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Hostels Display Section */}
+        {/* Updated Featured Hostels Section */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-2xl font-semibold mb-6 font-poppins">
             {isSearching ? 'Search Results' : 'Featured Hostels'}
           </h2>
-          
-          {loading.featured && !isSearching ? (
-            <div className="flex justify-center items-center h-32">
-              <p className="text-lg">Loading featured hostels...</p>
-            </div>
-          ) : loading.all && isSearching ? (
-            <div className="flex justify-center items-center h-32">
-              <p className="text-lg">Searching hostels...</p>
-            </div>
+          {loading.featured || loading.all ? (
+            <p className="font-poppins">Loading...</p>
           ) : filteredHostels.length === 0 ? (
-            <p className="text-lg">No hostels found matching your criteria.</p>
+            <p className="font-poppins">No hostels found</p>
           ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredHostels.slice(0, isSearching ? filteredHostels.length : 3).map((hostel) => (
-                  <div key={hostel._id} className={`bg-white rounded-lg shadow-md overflow-hidden ${!isSearching && 'border-2 border-yellow-400'}`}>
-                    <div className="relative h-48">
-                      <img 
-                        src={hostel.images?.[0] || 'https://via.placeholder.com/400x300'} 
-                        alt={hostel.name} 
-                        className="w-full h-full object-cover"
-                      />
-                      {!isSearching && (
-                        <div className="absolute top-2 left-2 bg-yellow-400 text-black px-2 py-1 rounded text-xs font-bold">
-                          Featured
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-bold text-lg mb-1">{hostel.name}</h3>
-                      <p className="text-gray-600 text-sm mb-2">
-                        <span className="font-medium">Location:</span> {hostel.location}, {hostel.city}
-                      </p>
-                      <p className="text-gray-600 text-sm mb-2">
-                        <span className="font-medium">Type:</span> {hostel.hostelType === 'Boys' ? 'Boys Hostel' : 'Girls Hostel'}
-                      </p>
-                      <p className="text-gray-600 text-sm mb-3">
-                        <span className="font-medium">Price:</span> 
-                        {hostel.price ? 
-                          `Rs. ${hostel.price.toLocaleString()}` : 
-                          hostel.priceRange ? 
-                          `Rs. ${hostel.priceRange.min?.toLocaleString()} - Rs. ${hostel.priceRange.max?.toLocaleString()}` : 
-                          'N/A'}
-                      </p>
-                      <button 
-                        onClick={() => navigate(`/hostels/${hostel._id}`)}
-                        className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-md transition duration-200"
-                      >
-                        View Details
-                      </button>
-                    </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredHostels.map((hostel) => (
+                <div
+                  key={hostel._id}
+                  className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-lg cursor-pointer transition-shadow duration-200"
+                >
+                  <div className="relative">
+                    <img
+                      src={hostel.images && hostel.images[0] ? hostel.images[0] : 'https://via.placeholder.com/300x200'}
+                      alt={hostel.name}
+                      className="w-full h-40 object-cover rounded-lg mb-4"
+                    />
+                    {!isSearching && (
+                      <span className="absolute top-2 right-2 bg-yellow-400 text-black text-xs font-semibold px-2 py-1 rounded-full font-poppins">
+                        Featured
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
-              {!isSearching && (
-                <div className="text-center mt-6">
-                  <button 
-                    onClick={() => navigate('/hostel')}
-                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors"
+                  <h3 className="text-xl font-bold text-gray-800 mb-2 font-poppins">{hostel.name}</h3>
+                  <p className="text-gray-700 text-sm mb-1 font-poppins">{hostel.location}, {hostel.city}</p>
+                  <p className="text-gray-700 text-sm mb-1 font-poppins">{hostel.hostelType}</p>
+                  <p className="text-gray-700 text-sm mb-1 font-poppins">
+                    Owner: {hostel.owner?.name || hostel.ownername || 'Unknown'}
+                  </p>
+                  <p className="text-gray-700 text-sm font-semibold mb-3 font-poppins">
+                    NPR {hostel.priceRange?.min || 'N/A'} - NPR {hostel.priceRange?.max || 'N/A'}
+                  </p>
+                  <button
+                    onClick={() => navigate(`/hostels/${hostel._id}`)}
+                    className="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-poppins"
                   >
-                    View All Hostels
+                    View Details
                   </button>
                 </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
         </div>
-        
+
         <RegisterHostel />
-        
+      
+        <AboutUs />
       </main>
       <Footer />
+      <ToastContainer />
     </div>
   );
 };

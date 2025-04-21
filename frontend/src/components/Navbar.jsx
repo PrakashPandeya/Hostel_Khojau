@@ -25,16 +25,22 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 flex items-center justify-between py-4 px-8 bg-white border-b shadow-sm z-10">
-      <div className="flex items-center">
+      {/* Left Section: Logo and Company Name */}
+      <div className="flex items-center gap-3">
         <NavLink to="/home">
-          <img src={HostelKhojauLogo} alt="Hostel Khojau Logo" className="h-10" />
+          <img src={HostelKhojauLogo} alt="Hostel Khojau Logo" className="h-20" />
         </NavLink>
+        <span className="text-2xl font-bold text-red-600 font-poppins">Hostel Khojau</span>
       </div>
-      <div className="flex items-center space-x-6">
+
+      {/* Right Section: Navigation Links */}
+      <div className="flex items-center gap-8 ml-auto mr-16">
         <NavLink
           to="/home"
           className={({ isActive }) =>
-            isActive ? 'text-red-600 font-medium' : 'text-gray-600 hover:text-red-600'
+            isActive
+              ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+              : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
           }
         >
           Home
@@ -42,7 +48,9 @@ const Navbar = () => {
         <NavLink
           to="/hostel"
           className={({ isActive }) =>
-            isActive ? 'text-red-600 font-medium' : 'text-gray-600 hover:text-red-600'
+            isActive
+              ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+              : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
           }
         >
           Hostels
@@ -52,7 +60,9 @@ const Navbar = () => {
             <NavLink
               to="/register-hostel"
               className={({ isActive }) =>
-                isActive ? 'text-red-600 font-medium' : 'text-gray-600 hover:text-red-600'
+                isActive
+                  ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+                  : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
               }
             >
               Register Hostel
@@ -60,7 +70,9 @@ const Navbar = () => {
             <NavLink
               to="/owner/hostels"
               className={({ isActive }) =>
-                isActive ? 'text-red-600 font-medium' : 'text-gray-600 hover:text-red-600'
+                isActive
+                  ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+                  : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
               }
             >
               Owner Dashboard
@@ -71,7 +83,9 @@ const Navbar = () => {
           <NavLink
             to="/admin/dashboard"
             className={({ isActive }) =>
-              isActive ? 'text-red-600 font-medium' : 'text-gray-600 hover:text-red-600'
+              isActive
+                ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+                : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
             }
           >
             Admin Dashboard
@@ -80,7 +94,7 @@ const Navbar = () => {
         {user ? (
           <button
             onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200"
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-poppins"
           >
             Logout
           </button>
@@ -89,15 +103,21 @@ const Navbar = () => {
             <NavLink
               to="/login"
               className={({ isActive }) =>
-                isActive ? 'text-red-600 font-medium' : 'text-gray-600 hover:text-red-600'
+                isActive
+                  ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+                  : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
               }
             >
               Login
             </NavLink>
             <NavLink
               to="/signup"
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200"
-            >
+              className={({ isActive }) =>
+                isActive
+                  ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+                  : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
+              }
+              >
               Sign Up
             </NavLink>
           </>

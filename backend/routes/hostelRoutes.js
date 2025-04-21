@@ -9,7 +9,11 @@ const { check, validationResult } = require('express-validator');
 // Get all hostels
 router.get('/', async (req, res) => {
   try {
-    const hostels = await Hostel.find({ isApproved: true })
+    const query = { isApproved: true };
+    if (req.query.featured === 'true') {
+      query.isFeatured = true;
+    }
+    const hostels = await Hostel.find(query)
       .populate('owner', 'name email')
       .populate('rooms')
       .populate('bookings');
@@ -57,7 +61,7 @@ router.post(
     check('hostelType', 'Hostel type is required').isIn(['Boys Hostel', 'Girls Hostel', 'Co-ed']),
     check('priceRange.min', 'Minimum price is required').isNumeric(),
     check('priceRange.max', 'Maximum price is required').isNumeric(),
-    check('description', 'Description is required').not().isEmpty()
+    check('description', 'Description is required').not().isEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -69,7 +73,7 @@ router.post(
       const hostel = new Hostel({
         ...req.body,
         owner: req.user.id,
-        isApproved: false
+        isApproved: false,
       });
 
       const newHostel = await hostel.save();
