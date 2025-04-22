@@ -4,29 +4,29 @@ const roomSchema = new mongoose.Schema({
   hostel: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Hostel',
-    required: true
+    required: true,
   },
   roomNumber: {
     type: String,
-    required: true
+    required: true,
   },
   roomType: {
     type: String,
     enum: ['Single', 'Double', 'Triple', 'Dorm'],
-    required: true
+    required: true,
   },
-  price: {
+  monthlyPrice: {
     type: Number,
-    required: true
+    required: true,
   },
   isAvailable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model('Room', roomSchema);

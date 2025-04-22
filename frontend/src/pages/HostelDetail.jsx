@@ -21,6 +21,8 @@ const HostelDetails = () => {
     checkInDate: '',
     checkOutDate: '',
   });
+  const [availability, setAvailability] = useState(null);
+  const token = localStorage.getItem('token'); // Check if user is logged in
 
   useEffect(() => {
     const fetchHostelDetails = async () => {
@@ -30,7 +32,6 @@ const HostelDetails = () => {
           axios.get(`http://localhost:5000/api/hostels/${id}`),
           axios.get(`http://localhost:5000/api/hostels/${id}/rooms`),
         ]);
-        console.log('Hostel details:', hostelResponse.data); // Debug log
         setHostel(hostelResponse.data);
         setRooms(roomsResponse.data);
       } catch (err) {
@@ -43,26 +44,48 @@ const HostelDetails = () => {
     fetchHostelDetails();
   }, [id]);
 
+  const checkAvailability = async () => {
+    const { roomId, checkInDate, checkOutDate } = bookingForm;
+    if (!roomId || !checkInDate || !checkOutDate) {
+      toast.error('Please fill in all booking details');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/api/bookings/check-availability`,
+        { roomId, checkInDate, checkOutDate }
+      );
+      setAvailability(response.data);
+    } catch (err) {
+      toast.error('Error checking availability');
+      setAvailability(null);
+    }
+  };
+
   const handleBookingChange = (e) => {
     const { name, value } = e.target;
     setBookingForm((prev) => ({ ...prev, [name]: value }));
+    setAvailability(null); // Reset availability when form changes
   };
 
   const handleBookNow = async () => {
-    const token = localStorage.getItem('token');
     if (!token) {
       toast.error('Please login to book');
       setTimeout(() => navigate('/login'), 1000);
       return;
     }
 
+    if (!availability?.isAvailable) {
+      toast.error('Room is not available for the selected dates');
+      return;
+    }
+
     try {
       const response = await axios.post(
         `http://localhost:5000/api/bookings/${id}/book`,
-        bookingForm,
-        {
-          headers: { 'x-auth-token': token },
-        }
+        { ...bookingForm, totalPrice: availability.totalPrice },
+        { headers: { 'x-auth-token': token } }
       );
       window.location.href = response.data.paymentUrl;
     } catch (err) {
@@ -70,41 +93,18 @@ const HostelDetails = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg">Loading hostel details...</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  const handleBookingToggle = () => {
+    if (!token) {
+      toast.error('Please login to book');
+      setTimeout(() => navigate('/login'), 1000);
+      return;
+    }
+    setShowBooking(!showBooking);
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg text-red-500">Error: {error}</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!hostel) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg">Hostel not found</p>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorState error={error} />;
+  if (!hostel) return <NotFoundState />;
 
   const totalReviews = hostel.reviews?.length || 0;
   const averageRating =
@@ -112,32 +112,35 @@ const HostelDetails = () => {
       ? (hostel.reviews.reduce((sum, review) => sum + review.rating, 0) / hostel.reviews.length).toFixed(1)
       : 0;
 
+  // Extract the src from the mapEmbedUrl iframe string
+  const mapSrc = hostel.mapEmbedUrl?.match(/src="([^"]+)"/)?.[1] || '';
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{hostel.name}</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold mb-2 font-poppins">{hostel.name}</h1>
+          <p className="text-gray-600 font-poppins">
             {hostel.location}, {hostel.city}
           </p>
           <div className="flex flex-wrap gap-4 mt-4">
             {hostel.contact?.phone && (
               <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                <span className="font-medium">Phone:</span> {hostel.contact.phone}
+                <span className="font-medium font-poppins">Phone:</span> {hostel.contact.phone}
               </div>
             )}
-            <div className snatched="bg-gray-100 px-4 py-2 rounded-lg">
-              <span className="font-medium">Type:</span> {hostel.hostelType}
+            <div className="bg-gray-100 px-4 py-2 rounded-lg">
+              <span className="font-medium font-poppins">Type:</span> {hostel.hostelType}
             </div>
             {hostel.contact?.email && (
               <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                <span className="font-medium">Email:</span> {hostel.contact.email}
+                <span className="font-medium font-poppins">Email:</span> {hostel.contact.email}
               </div>
             )}
             {(hostel.owner?.name || hostel.ownername) && (
               <div className="bg-gray-100 px-4 py-2 rounded-lg">
-                <span className="font-medium">Owner:</span> {hostel.owner?.name || hostel.ownername}
+                <span className="font-medium font-poppins">Owner:</span> {hostel.owner?.name || hostel.ownername}
               </div>
             )}
           </div>
@@ -145,11 +148,11 @@ const HostelDetails = () => {
 
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Gallery</h2>
+            <h2 className="text-xl font-bold font-poppins">Gallery</h2>
             {hostel.images360?.length > 0 && (
               <button
                 onClick={() => setShow360(!show360)}
-                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200"
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200 font-poppins"
               >
                 {show360 ? (
                   <>
@@ -204,7 +207,7 @@ const HostelDetails = () => {
                       loading="lazy"
                       title={`360° View of ${hostel.name} - ${index + 1}`}
                     />
-                    <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                    <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-poppins">
                       360° View
                     </div>
                   </div>
@@ -226,7 +229,7 @@ const HostelDetails = () => {
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                <p className="mt-2 text-gray-500">No 360° images available</p>
+                <p className="mt-2 text-gray-500 font-poppins">No 360° images available</p>
               </div>
             )
           ) : (
@@ -244,7 +247,7 @@ const HostelDetails = () => {
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                      <span className="text-white font-medium">Photo {index + 1}</span>
+                      <span className="text-white font-medium font-poppins">Photo {index + 1}</span>
                     </div>
                   </div>
                 ))
@@ -264,7 +267,7 @@ const HostelDetails = () => {
                       d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <p className="mt-2 text-gray-500">No photos available</p>
+                  <p className="mt-2 text-gray-500 font-poppins">No photos available</p>
                 </div>
               )}
             </div>
@@ -285,7 +288,7 @@ const HostelDetails = () => {
           <div className="flex space-x-8">
             <button
               onClick={() => setActiveTab('details')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
                 activeTab === 'details'
                   ? 'border-red-500 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -295,7 +298,7 @@ const HostelDetails = () => {
             </button>
             <button
               onClick={() => setActiveTab('amenities')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
                 activeTab === 'amenities'
                   ? 'border-red-500 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -304,8 +307,18 @@ const HostelDetails = () => {
               Hostel Features
             </button>
             <button
+              onClick={() => setActiveTab('rooms')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
+                activeTab === 'rooms'
+                  ? 'border-red-500 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Rooms
+            </button>
+            <button
               onClick={() => setActiveTab('reviews')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
                 activeTab === 'reviews'
                   ? 'border-red-500 text-red-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -319,7 +332,7 @@ const HostelDetails = () => {
         <div className="mb-8">
           {activeTab === 'details' && (
             <div>
-              <p className="text-gray-700 mb-6">{hostel.description}</p>
+              <p className="text-gray-700 mb-6 font-poppins">{hostel.description}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailCard title="Hostel Type" value={hostel.hostelType} />
                 <DetailCard
@@ -329,23 +342,169 @@ const HostelDetails = () => {
                 <DetailCard title="Location" value={`${hostel.location}, ${hostel.city}`} />
                 {hostel.contact?.phone && <DetailCard title="Contact" value={hostel.contact.phone} />}
               </div>
+              {mapSrc && (
+                <div className="mt-8">
+                  <h2 className="text-xl font-bold mb-4 font-poppins">Location</h2>
+                  <div className="w-full h-96 rounded-lg overflow-hidden shadow-lg border border-gray-200">
+                    <iframe
+                      src={mapSrc}
+                      className="w-full h-full"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Hostel Location Map"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'amenities' && (
             <div>
-              <h3 className="text-lg font-medium mb-4">Hostel Features</h3>
+              <h3 className="text-lg font-medium mb-4 font-poppins">Hostel Features</h3>
               {hostel.amenities && hostel.amenities.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {hostel.amenities.map((amenity, index) => (
                     <div key={index} className="flex items-center bg-gray-50 p-3 rounded-lg">
                       <span className="mr-2 text-green-500">✔</span>
-                      <span className="text-gray-700">{amenity}</span>
+                      <span className="text-gray-700 font-poppins">{amenity}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600">No amenities listed.</p>
+                <p className="text-gray-600 font-poppins">No amenities listed.</p>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'rooms' && (
+            <div>
+              <h3 className="text-lg font-medium mb-4 font-poppins">Available Rooms</h3>
+              {rooms.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {rooms.map((room) => (
+                    <div
+                      key={room._id}
+                      className="bg-white p-5 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
+                    >
+                      <h4 className="text-xl font-semibold text-gray-800 mb-2 font-poppins">
+                        Room {room.roomNumber}
+                      </h4>
+                      <div className="space-y-1">
+                        <p className="text-gray-600 font-poppins">
+                          <span className="font-medium">Type:</span> {room.roomType}
+                        </p>
+                        <p className="text-gray-600 font-poppins">
+                          <span className="font-medium">Price:</span> Rs. {room.monthlyPrice.toLocaleString()}/month
+                        </p>
+                        <p className="text-gray-600 font-poppins">
+                          <span className="font-medium">Status:</span>{' '}
+                          <span
+                            className={
+                              room.isAvailable ? 'text-green-500' : 'text-red-500'
+                            }
+                          >
+                            {room.isAvailable ? 'Available' : 'Not Available'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 font-poppins">No rooms available.</p>
+              )}
+              <div className="flex flex-wrap gap-4 mt-6">
+                <button
+                  onClick={handleBookingToggle}
+                  className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition duration-200 font-poppins"
+                >
+                  {showBooking ? 'Cancel' : 'Book Now'}
+                </button>
+                {hostel.contact?.phone && (
+                  <a
+                    href={`tel:${hostel.contact.phone}`}
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition duration-200 font-poppins"
+                  >
+                    Contact Owner
+                  </a>
+                )}
+              </div>
+              {showBooking && (
+                <div className="bg-gray-50 p-6 rounded-lg shadow-sm mt-6">
+                  <h2 className="text-xl font-bold mb-4 font-poppins">Book Your Stay</h2>
+                  {rooms.length === 0 ? (
+                    <p className="text-gray-600 font-poppins">No rooms available at the moment.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1 font-poppins">Select Room</label>
+                        <select
+                          name="roomId"
+                          value={bookingForm.roomId}
+                          onChange={handleBookingChange}
+                          className="w-full px-4 py-2 border rounded-lg"
+                        >
+                          <option value="">Select a room</option>
+                          {rooms.map((room) => (
+                            <option key={room._id} value={room._id}>
+                              Room {room.roomNumber} ({room.roomType}) - Rs. {room.monthlyPrice}/month
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 font-poppins">Check-in Date</label>
+                        <input
+                          type="date"
+                          name="checkInDate"
+                          value={bookingForm.checkInDate}
+                          onChange={handleBookingChange}
+                          className="w-full px-4 py-2 border rounded-lg"
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 font-poppins">Check-out Date</label>
+                        <input
+                          type="date"
+                          name="checkOutDate"
+                          value={bookingForm.checkOutDate}
+                          onChange={handleBookingChange}
+                          className="w-full px-4 py-2 border rounded-lg"
+                          min={bookingForm.checkInDate || new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <button
+                        onClick={checkAvailability}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-poppins"
+                      >
+                        Check Availability
+                      </button>
+                      {availability && (
+                        <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
+                          {availability.isAvailable ? (
+                            <>
+                              <p className="text-green-600 font-poppins">
+                                Room is available! Total Price: Rs. {availability.totalPrice}
+                              </p>
+                              <button
+                                onClick={handleBookNow}
+                                className="mt-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors font-poppins"
+                              >
+                                Confirm Booking
+                              </button>
+                            </>
+                          ) : (
+                            <p className="text-red-600 font-poppins">Room is not available for the selected dates.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
@@ -359,91 +518,20 @@ const HostelDetails = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600">No reviews yet.</p>
+                <p className="text-gray-600 font-poppins">No reviews yet.</p>
               )}
             </div>
           )}
         </div>
 
-        {hostel.mapEmbedUrl && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold mb-4">Location</h2>
-            <div className="w-full h-96 rounded-lg overflow-hidden shadow-lg border border-gray-200">
-              <div dangerouslySetInnerHTML={{ __html: hostel.mapEmbedUrl }} />
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-4 mb-8">
-          <button
-            onClick={() => setShowBooking(!showBooking)}
-            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition duration-200"
-          >
-            {showBooking ? 'Cancel' : 'Book Now'}
-          </button>
-          {hostel.contact?.phone && (
+        {activeTab !== 'rooms' && hostel.contact?.phone && (
+          <div className="flex flex-wrap gap-4 mb-8">
             <a
               href={`tel:${hostel.contact.phone}`}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition duration-200"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition duration-200 font-poppins"
             >
               Contact Owner
             </a>
-          )}
-        </div>
-
-        {showBooking && (
-          <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-8">
-            <h2 className="text-xl font-bold mb-4">Book Your Stay</h2>
-            {rooms.length === 0 ? (
-              <p className="text-gray-600">No rooms available at the moment.</p>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Select Room</label>
-                  <select
-                    name="roomId"
-                    value={bookingForm.roomId}
-                    onChange={handleBookingChange}
-                    className="w-full px-4 py-2 border rounded-lg"
-                  >
-                    <option value="">Select a room</option>
-                    {rooms.map((room) => (
-                      <option key={room._id} value={room._id}>
-                        {room.roomNumber} ({room.roomType}) - Rs. {room.price}/night
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Check-in Date</label>
-                  <input
-                    type="date"
-                    name="checkInDate"
-                    value={bookingForm.checkInDate}
-                    onChange={handleBookingChange}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Check-out Date</label>
-                  <input
-                    type="date"
-                    name="checkOutDate"
-                    value={bookingForm.checkOutDate}
-                    onChange={handleBookingChange}
-                    className="w-full px-4 py-2 border rounded-lg"
-                    min={bookingForm.checkInDate || new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-                <button
-                  onClick={handleBookNow}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors"
-                >
-                  Proceed to Payment
-                </button>
-              </div>
-            )}
           </div>
         )}
       </main>
@@ -453,18 +541,48 @@ const HostelDetails = () => {
   );
 };
 
+const LoadingState = () => (
+  <div className="min-h-screen bg-white">
+    <Navbar />
+    <div className="flex justify-center items-center h-64">
+      <p className="text-lg font-poppins">Loading hostel details...</p>
+    </div>
+    <Footer />
+  </div>
+);
+
+const ErrorState = ({ error }) => (
+  <div className="min-h-screen bg-white">
+    <Navbar />
+    <div className="flex justify-center items-center h-64">
+      <p className="text-lg text-red-500 font-poppins">Error: {error}</p>
+    </div>
+    <Footer />
+  </div>
+);
+
+const NotFoundState = () => (
+  <div className="min-h-screen bg-white">
+    <Navbar />
+    <div className="flex justify-center items-center h-64">
+      <p className="text-lg font-poppins">Hostel not found</p>
+    </div>
+    <Footer />
+  </div>
+);
+
 const StatCard = ({ title, value, icon }) => (
   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 text-center hover:shadow-md transition-shadow duration-300">
     <div className="text-2xl mb-1">{icon}</div>
-    <h3 className="font-bold text-lg">{value}</h3>
-    <p className="text-gray-600 text-sm">{title}</p>
+    <h3 className="font-bold text-lg font-poppins">{value}</h3>
+    <p className="text-gray-600 text-sm font-poppins">{title}</p>
   </div>
 );
 
 const DetailCard = ({ title, value }) => (
   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow duration-300">
-    <h3 className="font-medium text-gray-700">{title}</h3>
-    <p className="text-gray-900">{value}</p>
+    <h3 className="font-medium text-gray-700 font-poppins">{title}</h3>
+    <p className="text-gray-900 font-poppins">{value}</p>
   </div>
 );
 
@@ -475,7 +593,7 @@ const ReviewCard = ({ review }) => (
         <span className="text-gray-600">👤</span>
       </div>
       <div>
-        <h4 className="font-medium">User {review.userId?.toString().slice(-4)}</h4>
+        <h4 className="font-medium font-poppins">User {review.userId?.toString().slice(-4)}</h4>
         <div className="flex items-center">
           {[...Array(5)].map((_, i) => (
             <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>
@@ -485,8 +603,8 @@ const ReviewCard = ({ review }) => (
         </div>
       </div>
     </div>
-    <p className="text-gray-700">{review.comment}</p>
-    <p className="text-gray-500 text-sm mt-2">{new Date(review.createdAt).toLocaleDateString()}</p>
+    <p className="text-gray-700 font-poppins">{review.comment}</p>
+    <p className="text-gray-500 text-sm mt-2 font-poppins">{new Date(review.createdAt).toLocaleDateString()}</p>
   </div>
 );
 
