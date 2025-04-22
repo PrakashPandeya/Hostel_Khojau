@@ -23,6 +23,10 @@ const HostelDetails = () => {
   });
   const [availability, setAvailability] = useState(null);
   const token = localStorage.getItem('token'); // Check if user is logged in
+  const [reviewForm, setReviewForm] = useState({
+    comment: '',
+    rating: 0,
+  });
 
   useEffect(() => {
     const fetchHostelDetails = async () => {
@@ -66,13 +70,14 @@ const HostelDetails = () => {
   const handleBookingChange = (e) => {
     const { name, value } = e.target;
     setBookingForm((prev) => ({ ...prev, [name]: value }));
-    setAvailability(null); // Reset availability when form changes
+    setAvailability(null);
   };
 
   const handleBookNow = async () => {
     if (!token) {
+      const redirectUrl = `/hostels/${id}?tab=rooms`;
       toast.error('Please login to book');
-      setTimeout(() => navigate('/login'), 1000);
+      setTimeout(() => navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`), 1000);
       return;
     }
 
@@ -95,11 +100,51 @@ const HostelDetails = () => {
 
   const handleBookingToggle = () => {
     if (!token) {
+      const redirectUrl = `/hostels/${id}?tab=rooms`;
       toast.error('Please login to book');
-      setTimeout(() => navigate('/login'), 1000);
+      setTimeout(() => navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`), 1000);
       return;
     }
     setShowBooking(!showBooking);
+  };
+
+  const handleReviewChange = (e) => {
+    const { name, value } = e.target;
+    setReviewForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleRatingChange = (rating) => {
+    setReviewForm((prev) => ({ ...prev, rating }));
+  };
+  
+  const handleReviewSubmit = async () => {
+    console.log('Token:', token);
+    if (!token) {
+      const redirectUrl = `/hostels/${id}?tab=reviews`;
+      toast.error('Please login to submit a review');
+      setTimeout(() => navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`), 1000);
+      return;
+    }
+
+    if (!reviewForm.comment || reviewForm.rating === 0) {
+      toast.error('Please provide both a comment and a rating');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `http://localhost:5000/api/reviews/${id}/reviews`,
+        { comment: reviewForm.comment, rating: reviewForm.rating },
+        { headers: { 'x-auth-token': token } }
+      );
+      console.log('Response:', response.data);
+      setHostel(response.data); // Update hostel with new review
+      setReviewForm({ comment: '', rating: 0 }); // Reset form
+      toast.success('Review submitted successfully');
+    } catch (err) {
+      console.log('Error:', err.response?.data);
+      toast.error(err.response?.data?.message || 'Failed to submit review');
+    }
   };
 
   if (loading) return <LoadingState />;
@@ -112,7 +157,6 @@ const HostelDetails = () => {
       ? (hostel.reviews.reduce((sum, review) => sum + review.rating, 0) / hostel.reviews.length).toFixed(1)
       : 0;
 
-  // Extract the src from the mapEmbedUrl iframe string
   const mapSrc = hostel.mapEmbedUrl?.match(/src="([^"]+)"/)?.[1] || '';
 
   return (
@@ -511,15 +555,71 @@ const HostelDetails = () => {
 
           {activeTab === 'reviews' && (
             <div>
+              <h3 className="text-lg font-medium mb-4 font-poppins">Reviews</h3>
               {hostel.reviews && hostel.reviews.length > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-6 mb-8">
                   {hostel.reviews.map((review, index) => (
                     <ReviewCard key={index} review={review} />
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600 font-poppins">No reviews yet.</p>
+                <p className="text-gray-600 mb-8 font-poppins">No reviews yet.</p>
               )}
+
+              <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+                <h4 className="text-lg font-medium mb-4 font-poppins">Write a Review</h4>
+                {token ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1 font-poppins">Your Rating</label>
+                      <div className="flex items-center space-x-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => handleRatingChange(star)}
+                            className={`text-2xl ${
+                              star <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'
+                            } focus:outline-none`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1 font-poppins">Your Review</label>
+                      <textarea
+                        name="comment"
+                        value={reviewForm.comment}
+                        onChange={handleReviewChange}
+                        className="w-full px-4 py-2 border rounded-lg resize-y"
+                        rows="4"
+                        placeholder="Write your review here..."
+                      />
+                    </div>
+                    <button
+                      onClick={handleReviewSubmit}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-poppins"
+                    >
+                      Submit Review
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-gray-600 font-poppins">
+                    Please{' '}
+                    <button
+                      onClick={() => {
+                        const redirectUrl = `/hostels/${id}?tab=reviews`;
+                        navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+                      }}
+                      className="text-blue-500 hover:underline"
+                    >
+                      login
+                    </button>{' '}
+                    to write a review.
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
