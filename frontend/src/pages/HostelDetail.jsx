@@ -22,7 +22,7 @@ const HostelDetails = () => {
     checkOutDate: '',
   });
   const [availability, setAvailability] = useState(null);
-  const token = localStorage.getItem('token'); // Check if user is logged in
+  const token = localStorage.getItem('token');
   const [reviewForm, setReviewForm] = useState({
     comment: '',
     rating: 0,
@@ -33,8 +33,8 @@ const HostelDetails = () => {
       try {
         setLoading(true);
         const [hostelResponse, roomsResponse] = await Promise.all([
-          axios.get(`http://localhost:5000/api/hostels/${id}`),
-          axios.get(`http://localhost:5000/api/hostels/${id}/rooms`),
+          axios.get(`/api/hostels/${id}`),
+          axios.get(`/api/hostels/${id}/rooms`),
         ]);
         setHostel(hostelResponse.data);
         setRooms(roomsResponse.data);
@@ -57,7 +57,7 @@ const HostelDetails = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/bookings/check-availability`,
+        `/api/bookings/check-availability`,
         { roomId, checkInDate, checkOutDate }
       );
       setAvailability(response.data);
@@ -88,7 +88,7 @@ const HostelDetails = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/bookings/${id}/book`,
+        `/api/bookings/${id}/book`,
         { ...bookingForm, totalPrice: availability.totalPrice },
         { headers: { 'x-auth-token': token } }
       );
@@ -116,9 +116,8 @@ const HostelDetails = () => {
   const handleRatingChange = (rating) => {
     setReviewForm((prev) => ({ ...prev, rating }));
   };
-  
+
   const handleReviewSubmit = async () => {
-    console.log('Token:', token);
     if (!token) {
       const redirectUrl = `/hostels/${id}?tab=reviews`;
       toast.error('Please login to submit a review');
@@ -133,17 +132,21 @@ const HostelDetails = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/reviews/${id}/reviews`,
+        `/api/reviews/${id}/reviews`,
         { comment: reviewForm.comment, rating: reviewForm.rating },
         { headers: { 'x-auth-token': token } }
       );
-      console.log('Response:', response.data);
-      setHostel(response.data); // Update hostel with new review
-      setReviewForm({ comment: '', rating: 0 }); // Reset form
+      setHostel(response.data);
+      setReviewForm({ comment: '', rating: 0 });
       toast.success('Review submitted successfully');
     } catch (err) {
-      console.log('Error:', err.response?.data);
-      toast.error(err.response?.data?.message || 'Failed to submit review');
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        toast.error('Session expired, please login again');
+        setTimeout(() => navigate(`/login?redirect=${encodeURIComponent(`/hostels/${id}?tab=reviews`)}`), 1000);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to submit review');
+      }
     }
   };
 
@@ -693,7 +696,7 @@ const ReviewCard = ({ review }) => (
         <span className="text-gray-600">👤</span>
       </div>
       <div>
-        <h4 className="font-medium font-poppins">User {review.userId?.toString().slice(-4)}</h4>
+        <h4 className="font-medium font-poppins">{review.userId?.name || 'Anonymous'}</h4>
         <div className="flex items-center">
           {[...Array(5)].map((_, i) => (
             <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>

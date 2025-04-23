@@ -43,6 +43,10 @@ const OwnerDashboard = () => {
         if (err.response?.status === 403 && err.response?.data?.message === 'Account pending approval') {
           toast.error('Your account is still pending approval. Please wait for admin approval.');
           setTimeout(() => navigate('/pending-approval'), 1000);
+        } else if (err.response?.status === 401) {
+          localStorage.removeItem('token');
+          toast.error('Session expired, please login again');
+          setTimeout(() => navigate('/login'), 1000);
         } else {
           toast.error(err.response?.data?.message || 'Failed to fetch data');
         }
@@ -89,6 +93,29 @@ const OwnerDashboard = () => {
       setHostels(hostels.filter(h => h._id !== hostelId));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete hostel');
+    }
+  };
+
+  const handleDeleteReview = async (hostelId, reviewId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await axios.delete(`/api/reviews/${hostelId}/reviews/${reviewId}`, {
+        headers: { 'x-auth-token': token },
+      });
+      setHostels((prevHostels) =>
+        prevHostels.map((hostel) =>
+          hostel._id === hostelId ? response.data : hostel
+        )
+      );
+      toast.success('Review deleted successfully');
+    } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem('token');
+        toast.error('Session expired, please login again');
+        setTimeout(() => navigate('/login'), 1000);
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to delete review');
+      }
     }
   };
 
@@ -158,6 +185,50 @@ const OwnerDashboard = () => {
                 </div>
               ))}
             </div>
+          )}
+        </section>
+
+        {/* Reviews Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Reviews</h2>
+          {hostels.length === 0 ? (
+            <div className="bg-white p-6 rounded-xl shadow-sm text-center">
+              <p className="text-gray-500 text-lg">No hostels, so no reviews yet.</p>
+            </div>
+          ) : hostels.every(hostel => !hostel.reviews || hostel.reviews.length === 0) ? (
+            <div className="bg-white p-6 rounded-xl shadow-sm text-center">
+              <p className="text-gray-500 text-lg">No reviews yet for your hostels.</p>
+            </div>
+          ) : (
+            hostels.map(hostel => (
+              <div key={hostel._id} className="mb-6">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">{hostel.name}</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {hostel.reviews.map(review => (
+                    <div
+                      key={review._id}
+                      className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition flex justify-between items-start"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {review.userId?.name || 'Anonymous'} - {review.rating} ★
+                        </p>
+                        <p className="text-gray-600 mt-1">{review.comment}</p>
+                        <p className="text-gray-500 text-sm mt-2">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteReview(hostel._id, review._id)}
+                        className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
           )}
         </section>
 
