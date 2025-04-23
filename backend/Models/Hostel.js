@@ -66,6 +66,11 @@ const hostelSchema = new mongoose.Schema({
     phone: String,
     email: String
   },
+  status: {
+    type: String,
+    enum: ['pending', 'active', 'rejected'],
+    default: 'pending'
+  },
   reviews: [{
     userId: {
       type: mongoose.Schema.Types.ObjectId,

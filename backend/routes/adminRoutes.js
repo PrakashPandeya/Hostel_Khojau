@@ -8,7 +8,7 @@ const { authorize } = require('../middleware/auth');
 // Get all pending hostels
 router.get('/hostels/pending', [auth, authorize('admin')], async (req, res) => {
   try {
-    const hostels = await Hostel.find({ isApproved: false }).populate('owner', 'name email');
+    const hostels = await Hostel.find({ status: 'pending' }).populate('owner', 'name email');
     res.json(hostels);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -23,9 +23,7 @@ router.put('/hostels/:id/approve', [auth, authorize('admin')], async (req, res) 
       return res.status(404).json({ message: 'Hostel not found' });
     }
 
-    hostel.isApproved = true;
-    hostel.approvedBy = req.user.id;
-    hostel.approvedAt = new Date();
+    hostel.status = 'active';
     await hostel.save();
 
     res.json(hostel);
@@ -42,8 +40,10 @@ router.put('/hostels/:id/reject', [auth, authorize('admin')], async (req, res) =
       return res.status(404).json({ message: 'Hostel not found' });
     }
 
-    await hostel.deleteOne(); // Remove rejected hostel
-    res.json({ message: 'Hostel rejected and removed' });
+    hostel.status = 'rejected';
+    await hostel.save();
+
+    res.json({ message: 'Hostel rejected' });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -54,6 +54,39 @@ router.get('/users', [auth, authorize('admin')], async (req, res) => {
   try {
     const users = await User.find().select('-password');
     res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all pending owners
+router.get('/pending-owners', [auth, authorize('admin')], async (req, res) => {
+  try {
+    const pendingOwners = await User.find({ role: 'owner', isApproved: false });
+    res.json(pendingOwners);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Approve an owner
+router.put('/approve-owner/:id', [auth, authorize('admin')], async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || user.role !== 'owner') {
+      return res.status(404).json({ message: 'Owner not found' });
+    }
+
+    user.isApproved = true;
+    await user.save();
+
+    // Activate the owner's pending hostels
+    await Hostel.updateMany(
+      { owner: user._id, status: 'pending' },
+      { status: 'active' }
+    );
+
+    res.json({ message: 'Owner approved successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

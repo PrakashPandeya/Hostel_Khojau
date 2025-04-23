@@ -15,7 +15,7 @@ const OwnerDashboard = () => {
     hostelId: '',
     roomNumber: '',
     roomType: '',
-    price: ''
+    monthlyPrice: ''
   });
 
   useEffect(() => {
@@ -40,7 +40,12 @@ const OwnerDashboard = () => {
         setHostels(hostelsResponse.data);
         setBookings(bookingsResponse.data);
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to fetch data');
+        if (err.response?.status === 403 && err.response?.data?.message === 'Account pending approval') {
+          toast.error('Your account is still pending approval. Please wait for admin approval.');
+          setTimeout(() => navigate('/pending-approval'), 1000);
+        } else {
+          toast.error(err.response?.data?.message || 'Failed to fetch data');
+        }
       } finally {
         setLoading(false);
       }
@@ -64,8 +69,7 @@ const OwnerDashboard = () => {
         { headers: { 'x-auth-token': token } }
       );
       toast.success('Room added successfully');
-      setNewRoom({ hostelId: '', roomNumber: '', roomType: '', price: '' });
-      // Refresh hostels
+      setNewRoom({ hostelId: '', roomNumber: '', roomType: '', monthlyPrice: '' });
       const response = await axios.get('http://localhost:5000/api/owner/hostels', {
         headers: { 'x-auth-token': token }
       });
@@ -90,10 +94,10 @@ const OwnerDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="flex justify-center items-center h-64">
-          <p className="text-lg">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500"></div>
         </div>
         <Footer />
       </div>
@@ -101,32 +105,52 @@ const OwnerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50 font-sans">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-6">Owner Dashboard</h1>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h1 className="text-4xl font-bold text-gray-800 mb-8">Owner Dashboard</h1>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Your Hostels</h2>
+        {/* Hostels Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Your Hostels</h2>
           {hostels.length === 0 ? (
-            <p className="text-gray-600">No hostels registered yet.</p>
+            <div className="bg-white p-6 rounded-xl shadow-sm text-center">
+              <p className="text-gray-500 text-lg">No hostels registered yet.</p>
+              <button
+                onClick={() => navigate('/register-hostel')}
+                className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                Register a Hostel
+              </button>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {hostels.map(hostel => (
-                <div key={hostel._id} className="bg-white rounded-lg shadow-md p-4">
-                  <h3 className="font-bold text-lg mb-2">{hostel.name}</h3>
-                  <p className="text-gray-600 mb-2">Status: {hostel.status}</p>
-                  <p className="text-gray-600 mb-2">Rooms: {hostel.rooms.length}</p>
-                  <div className="flex gap-2">
+                <div
+                  key={hostel._id}
+                  className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1"
+                >
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{hostel.name}</h3>
+                  <p className="text-gray-600 mb-2">
+                    Status: <span className={
+                      hostel.status === 'active' ? 'text-green-500' :
+                      hostel.status === 'pending' ? 'text-yellow-500' :
+                      'text-red-500'
+                    }>
+                      {hostel.status.charAt(0).toUpperCase() + hostel.status.slice(1)}
+                    </span>
+                  </p>
+                  <p className="text-gray-600 mb-4">Rooms: {hostel.rooms.length}</p>
+                  <div className="flex gap-3">
                     <button
                       onClick={() => navigate(`/hostels/${hostel._id}`)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                     >
                       View
                     </button>
                     <button
                       onClick={() => handleDeleteHostel(hostel._id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                      className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
                     >
                       Delete
                     </button>
@@ -135,93 +159,106 @@ const OwnerDashboard = () => {
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Add Room</h2>
-          <form onSubmit={handleAddRoom} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Select Hostel</label>
-              <select
-                name="hostelId"
-                value={newRoom.hostelId}
-                onChange={handleRoomChange}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              >
-                <option value="">Select Hostel</option>
-                {hostels.map(hostel => (
-                  <option key={hostel._id} value={hostel._id}>{hostel.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Room Number</label>
-              <input
-                type="text"
-                name="roomNumber"
-                value={newRoom.roomNumber}
-                onChange={handleRoomChange}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Room Type</label>
-              <select
-                name="roomType"
-                value={newRoom.roomType}
-                onChange={handleRoomChange}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              >
-                <option value="">Select Type</option>
-                <option value="Single">Single</option>
-                <option value="Double">Double</option>
-                <option value="Triple">Triple</option>
-                <option value="Dorm">Dorm</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Price (Rs./night)</label>
-              <input
-                type="number"
-                name="price"
-                value={newRoom.price}
-                onChange={handleRoomChange}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
-            >
-              Add Room
-            </button>
-          </form>
-        </div>
+        {/* Add Room Section */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Add New Room</h2>
+          <div className="bg-white p-8 rounded-xl shadow-md">
+            <form onSubmit={handleAddRoom} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Hostel</label>
+                <select
+                  name="hostelId"
+                  value={newRoom.hostelId}
+                  onChange={handleRoomChange}
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                >
+                  <option value="">Select Hostel</option>
+                  {hostels.map(hostel => (
+                    <option key={hostel._id} value={hostel._id}>{hostel.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Room Number</label>
+                <input
+                  type="text"
+                  name="roomNumber"
+                  value={newRoom.roomNumber}
+                  onChange={handleRoomChange}
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Room Type</label>
+                <select
+                  name="roomType"
+                  value={newRoom.roomType}
+                  onChange={handleRoomChange}
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                >
+                  <option value="">Select Type</option>
+                  <option value="Single">Single</option>
+                  <option value="Double">Double</option>
+                  <option value="Triple">Triple</option>
+                  <option value="Dorm">Dorm</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price (Rs./month)</label>
+                <input
+                  type="number"
+                  name="monthlyPrice"
+                  value={newRoom.monthlyPrice}
+                  onChange={handleRoomChange}
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+                >
+                  Add Room
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
 
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Bookings</h2>
+        {/* Bookings Section */}
+        <section>
+          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Bookings</h2>
           {bookings.length === 0 ? (
-            <p className="text-gray-600">No bookings yet.</p>
+            <div className="bg-white p-6 rounded-xl shadow-sm text-center">
+              <p className="text-gray-500 text-lg">No bookings yet.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {bookings.map(booking => (
-                <div key={booking._id} className="bg-white rounded-lg shadow-md p-4">
-                  <p className="text-gray-600">Hostel: {booking.hostel.name}</p>
+                <div
+                  key={booking._id}
+                  className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{booking.hostel.name}</h3>
                   <p className="text-gray-600">Room: {booking.room.roomNumber} ({booking.room.roomType})</p>
                   <p className="text-gray-600">User: {booking.user.name}</p>
                   <p className="text-gray-600">Check-in: {new Date(booking.checkInDate).toLocaleDateString()}</p>
                   <p className="text-gray-600">Check-out: {new Date(booking.checkOutDate).toLocaleDateString()}</p>
                   <p className="text-gray-600">Amount: Rs. {booking.totalAmount}</p>
-                  <p className="text-gray-600">Status: {booking.status}</p>
+                  <p className="text-gray-600">
+                    Status: <span className={booking.status === 'Confirmed' ? 'text-green-500' : 'text-yellow-500'}>{booking.status}</span>
+                  </p>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </main>
       <Footer />
       <ToastContainer />

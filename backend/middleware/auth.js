@@ -5,7 +5,7 @@ module.exports = async (req, res, next) => {
     // Get token from header
     const token = req.header('x-auth-token');
 
-    // Check if not token
+    // Check if no token
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
@@ -20,8 +20,13 @@ module.exports = async (req, res, next) => {
             return res.status(401).json({ message: 'User not found' });
         }
 
-        // Check if owner is approved
+        // Allow pending owners to register hostels, but block other actions
         if (user.role === 'owner' && !user.isApproved) {
+            if (req.path === '/api/hostels' && req.method === 'POST') {
+                // Allow hostel registration submission
+                req.user = decoded.user;
+                return next();
+            }
             return res.status(403).json({ message: 'Account pending approval' });
         }
 

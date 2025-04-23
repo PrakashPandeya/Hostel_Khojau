@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { handleError, handleSuccess } from '../utils';
 import RegisterImage from '../assets/register.jpg';
@@ -11,10 +11,20 @@ function Signup() {
         name: '',
         email: '',
         password: '',
-        role: 'user' // Default to regular user
+        role: 'user' // Default role
     });
 
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Check for pre-selected role from URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const role = params.get('role');
+        if (role === 'owner') {
+            setSignupInfo(prev => ({ ...prev, role: 'owner' }));
+        }
+    }, [location]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -31,15 +41,20 @@ function Signup() {
 
         try {
             const response = await axios.post('http://localhost:5000/api/auth/register', {
-                name: signupInfo.name,
-                email: signupInfo.email,
-                password: signupInfo.password,
-                role: signupInfo.role
+                name,
+                email,
+                password,
+                role
             });
             
             handleSuccess(`Signup successful as ${role}!`);
             setTimeout(() => {
-                navigate('/login');
+                if (role === 'owner') {
+                    // Redirect to a pending approval page for owners
+                    navigate('/pending-approval');
+                } else {
+                    navigate('/login');
+                }
             }, 1000);
         } catch (error) {
             console.error('Signup error details:', error.response);

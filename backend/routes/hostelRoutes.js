@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Hostel = require('../models/Hostel');
 const Room = require('../models/Room');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { authorize } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
@@ -9,17 +10,18 @@ const { check, validationResult } = require('express-validator');
 // Get all hostels
 router.get('/', async (req, res) => {
   try {
-    const query = { isApproved: true };
-    if (req.query.featured === 'true') {
-      query.isFeatured = true;
-    }
+    const query = req.query.featured === 'true' ? { isFeatured: true } : {};
     const hostels = await Hostel.find(query)
+      .select('-images -images360')
       .populate('owner', 'name email')
       .populate('rooms')
-      .populate('bookings');
+      .populate('bookings')
+      .lean();
+    console.log('Fetched hostels:', hostels); // Log the result
     res.json(hostels);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Error fetching hostels:', err.message);
+    res.status(500).json({ message: 'Failed to fetch hostels: ' + err.message });
   }
 });
 
@@ -29,23 +31,26 @@ router.get('/:id', async (req, res) => {
     const hostel = await Hostel.findById(req.params.id)
       .populate('owner', 'name email')
       .populate('rooms')
-      .populate('bookings');
-    if (!hostel || !hostel.isApproved) {
+      .populate('bookings')
+      .lean();
+    if (!hostel) {
       return res.status(404).json({ message: 'Hostel not found' });
     }
     res.json(hostel);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Error fetching hostel by ID:', err.message);
+    res.status(500).json({ message: 'Failed to fetch hostel: ' + err.message });
   }
 });
 
 // Get rooms for a hostel
 router.get('/:id/rooms', async (req, res) => {
   try {
-    const rooms = await Room.find({ hostel: req.params.id });
+    const rooms = await Room.find({ hostel: req.params.id }).lean();
     res.json(rooms);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Error fetching rooms:', err.message);
+    res.status(500).json({ message: 'Failed to fetch rooms: ' + err.message });
   }
 });
 
@@ -62,6 +67,11 @@ router.post(
     check('priceRange.min', 'Minimum price is required').isNumeric(),
     check('priceRange.max', 'Maximum price is required').isNumeric(),
     check('description', 'Description is required').not().isEmpty(),
+    check('images', 'Images must be an array').isArray().optional(),
+    check('images', 'Maximum 3 images allowed').custom((value) => !value || value.length <= 3),
+    check('images.*', 'Each image must be a string').isString().optional(),
+    check('images360', '360-degree images must be an array').isArray().optional(),
+    check('images360.*', 'Each 360-degree image must be a string').isString().optional(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -70,16 +80,26 @@ router.post(
     }
 
     try {
-      const hostel = new Hostel({
+      const user = await User.findById(req.user.id);
+      const hostelData = {
         ...req.body,
         owner: req.user.id,
-        isApproved: false,
+        status: user.isApproved ? 'active' : 'pending',
+        images: req.body.images || [],
+        images360: req.body.images360 || [],
+      };
+
+      const hostel = new Hostel(hostelData);
+      const newHostel = await hostel.save();
+
+      await User.findByIdAndUpdate(req.user.id, {
+        $push: { ownedHostels: newHostel._id }
       });
 
-      const newHostel = await hostel.save();
       res.status(201).json(newHostel);
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      console.error('Error creating hostel:', err.message);
+      res.status(400).json({ message: 'Failed to create hostel: ' + err.message });
     }
   }
 );
@@ -103,7 +123,8 @@ router.put(
       const updatedHostel = await hostel.save();
       res.json(updatedHostel);
     } catch (err) {
-      res.status(400).json({ message: err.message });
+      console.error('Error updating hostel:', err.message);
+      res.status(400).json({ message: 'Failed to update hostel: ' + err.message });
     }
   }
 );
@@ -126,7 +147,8 @@ router.delete(
       await hostel.deleteOne();
       res.json({ message: 'Hostel deleted' });
     } catch (err) {
-      res.status(500).json({ message: err.message });
+      console.error('Error deleting hostel:', err.message);
+      res.status(500).json({ message: 'Failed to delete hostel: ' + err.message });
     }
   }
 );

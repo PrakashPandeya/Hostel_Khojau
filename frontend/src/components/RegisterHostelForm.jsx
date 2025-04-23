@@ -18,6 +18,8 @@ const RegisterHostelForm = () => {
     amenities: [],
     mapEmbedUrl: '',
     contact: { phone: '', email: '' },
+    images: [],
+    images360: [],
   });
 
   const handleChange = (e) => {
@@ -40,6 +42,29 @@ const RegisterHostelForm = () => {
       amenities: checked
         ? [...prev.amenities, value]
         : prev.amenities.filter((a) => a !== value),
+    }));
+  };
+
+  const handleImagesChange = (e, field) => {
+    const files = Array.from(e.target.files);
+    
+    if (field === 'images' && files.length + formData.images.length > 3) {
+      toast.error('You can upload a maximum of 3 images.');
+      return;
+    }
+
+    // Simulate file upload by generating placeholder URLs
+    const newImages = files.map((file, index) => `/images/${field}-${Date.now()}-${index}.jpg`);
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...prev[field], ...newImages],
+    }));
+  };
+
+  const handleRemoveImage = (index, field) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index),
     }));
   };
 
@@ -209,6 +234,76 @@ const RegisterHostelForm = () => {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Images Upload (up to 3) */}
+          <div>
+            <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">
+              Upload Images (Up to 3)
+            </label>
+            <input
+              type="file"
+              id="images"
+              name="images"
+              multiple
+              accept="image/*"
+              onChange={(e) => handleImagesChange(e, 'images')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {formData.images.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {formData.images.map((image, index) => (
+                  <div key={index} className="relative">
+                    <span className="text-sm text-gray-600">{image}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index, 'images')}
+                      className="ml-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              Note: Images are stored as placeholder URLs. Implement proper file upload in production.
+            </p>
+          </div>
+
+          {/* 360-Degree Images Upload (Optional) */}
+          <div>
+            <label htmlFor="images360" className="block text-sm font-medium text-gray-700 mb-1">
+              Upload 360-Degree Images (Optional)
+            </label>
+            <input
+              type="file"
+              id="images360"
+              name="images360"
+              multiple
+              accept="image/*"
+              onChange={(e) => handleImagesChange(e, 'images360')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {formData.images360.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {formData.images360.map((image, index) => (
+                  <div key={index} className="relative">
+                    <span className="text-sm text-gray-600">{image}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index, 'images360')}
+                      className="ml-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              Note: 360-degree images are stored as placeholder URLs. Implement proper file upload in production.
+            </p>
           </div>
 
           {/* Map Embed URL */}
