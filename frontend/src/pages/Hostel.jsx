@@ -60,9 +60,8 @@ const HostelPage = () => {
 const HostelCard = ({ hostel }) => {
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-md">
-      <div className="relative">
-        <img
-          src={hostel.images && hostel.images[0] ? hostel.images[0] : 'https://via.placeholder.com/400x300'}
+      <div className="relative">        <img
+          src={hostel.images && hostel.images[0] ? hostel.images[0] : 'https://via.placeholder.com/300x200'}
           alt={hostel.name}
           className="w-full h-48 object-cover"
         />

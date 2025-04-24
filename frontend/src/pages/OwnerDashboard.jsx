@@ -415,15 +415,22 @@ const OwnerDashboard = () => {
                                     key={booking._id}
                                     className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
                                 >
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{booking.hostel.name}</h3>
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Booking Details</h3>
                                     <p className="text-gray-600">Room: {booking.room.roomNumber} ({booking.room.roomType})</p>
                                     <p className="text-gray-600">User: {booking.user.name}</p>
-                                    <p className="text-gray-600">Check-in: {new Date(booking.checkInDate).toLocaleDateString()}</p>
-                                    <p className="text-gray-600">Check-out: {new Date(booking.checkOutDate).toLocaleDateString()}</p>
-                                    <p className="text-gray-600">Amount: Rs. {booking.totalAmount}</p>
-                                    <p className="text-gray-600">
-                                        Status: <span className={booking.status === 'Confirmed' ? 'text-green-500' : 'text-yellow-500'}>{booking.status}</span>
-                                    </p>
+                                    <p className="text-gray-600">Check-in Date: {new Date(booking.checkInDate).toLocaleDateString()}</p>
+                                    <p className="text-gray-600">Duration: {booking.totalMonthsStaying} month(s)</p>
+                                    <p className="text-gray-600">Payment Status: <span className={
+                                        booking.paymentStatus === 'completed' ? 'text-green-500' : 
+                                        booking.paymentStatus === 'pending' ? 'text-yellow-500' :
+                                        'text-red-500'
+                                    }>{booking.paymentStatus?.charAt(0).toUpperCase() + booking.paymentStatus?.slice(1)}</span></p>
+                                    <p className="text-gray-600">Booking Status: <span className={
+                                        booking.status === 'confirmed' ? 'text-green-500' :
+                                        booking.status === 'pending' ? 'text-yellow-500' :
+                                        'text-red-500'
+                                    }>{booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span></p>
+                                    <p className="text-gray-600 font-semibold mt-2">Total Amount: Rs. {booking.totalPrice}</p>
                                 </div>
                             ))}
                         </div>

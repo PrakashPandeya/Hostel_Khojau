@@ -221,7 +221,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Updated Featured Hostels Section */}
+        {/*  Featured Hostels Section */}
         <div className="mb-12">
           <h2 className="text-2xl font-semibold mb-6 font-poppins">
             {isSearching ? 'Search Results' : 'Featured Hostels'}
