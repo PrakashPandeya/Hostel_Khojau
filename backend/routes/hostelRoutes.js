@@ -32,6 +32,7 @@ router.get('/:id', async (req, res) => {
       .populate('owner', 'name email')
       .populate('rooms')
       .populate('bookings')
+      .populate('reviews.userId', 'name')
       .lean();
     if (!hostel) {
       return res.status(404).json({ message: 'Hostel not found' });
@@ -152,5 +153,6 @@ router.delete(
     }
   }
 );
+
 
 module.exports = router;

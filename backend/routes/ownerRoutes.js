@@ -10,7 +10,10 @@ const { check, validationResult } = require('express-validator');
 // Get owner's hostels
 router.get('/hostels', [auth, authorize('owner')], async (req, res) => {
   try {
-    const hostels = await Hostel.find({ owner: req.user.id }).populate('rooms bookings');
+    const hostels = await Hostel.find({ owner: req.user.id })
+    .populate('rooms bookings')
+    .populate('reviews.userId', 'name') 
+    .lean();
     res.json(hostels);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -19,9 +19,8 @@ const HostelDetails = () => {
   const [bookingForm, setBookingForm] = useState({
     roomId: '',
     checkInDate: '',
-    checkOutDate: '',
+    totalMonthsStaying: 1,
   });
-  const [availability, setAvailability] = useState(null);
   const token = localStorage.getItem('token');
   const [reviewForm, setReviewForm] = useState({
     comment: '',
@@ -48,29 +47,9 @@ const HostelDetails = () => {
     fetchHostelDetails();
   }, [id]);
 
-  const checkAvailability = async () => {
-    const { roomId, checkInDate, checkOutDate } = bookingForm;
-    if (!roomId || !checkInDate || !checkOutDate) {
-      toast.error('Please fill in all booking details');
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `/api/bookings/check-availability`,
-        { roomId, checkInDate, checkOutDate }
-      );
-      setAvailability(response.data);
-    } catch (err) {
-      toast.error('Error checking availability');
-      setAvailability(null);
-    }
-  };
-
   const handleBookingChange = (e) => {
     const { name, value } = e.target;
     setBookingForm((prev) => ({ ...prev, [name]: value }));
-    setAvailability(null);
   };
 
   const handleBookNow = async () => {
@@ -81,31 +60,53 @@ const HostelDetails = () => {
       return;
     }
 
-    if (!availability?.isAvailable) {
-      toast.error('Room is not available for the selected dates');
+    const { roomId, checkInDate, totalMonthsStaying } = bookingForm;
+    if (!roomId || !checkInDate || !totalMonthsStaying) {
+      toast.error('Please fill in all booking details');
+      return;
+    }
+
+    const checkIn = new Date(checkInDate);
+    if (isNaN(checkIn.getTime())) {
+      toast.error('Please select a valid check-in date');
+      return;
+    }
+
+    const months = parseInt(totalMonthsStaying, 10);
+    if (isNaN(months) || months < 1) {
+      toast.error('Total months staying must be at least 1');
       return;
     }
 
     try {
       const response = await axios.post(
         `/api/bookings/${id}/book`,
-        { ...bookingForm, totalPrice: availability.totalPrice },
+        { roomId, checkInDate, totalMonthsStaying: months },
         { headers: { 'x-auth-token': token } }
       );
-      window.location.href = response.data.paymentUrl;
+
+      if (response.data.success && response.data.payment?.payment_url) {
+        window.location.href = response.data.payment.payment_url;
+      } else {
+        toast.error('Payment initiation failed: No payment URL received');
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Booking failed');
+      const errorMessage = err.response?.data?.message || 'Booking failed';
+      const errorDetails = err.response?.data?.error ? JSON.stringify(err.response.data.error) : '';
+      console.error('Booking Error:', err.response?.data || err.message);
+      toast.error(`${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
     }
   };
 
-  const handleBookingToggle = () => {
+  const handleSelectRoom = (roomId) => {
     if (!token) {
       const redirectUrl = `/hostels/${id}?tab=rooms`;
       toast.error('Please login to book');
       setTimeout(() => navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`), 1000);
       return;
     }
-    setShowBooking(!showBooking);
+    setBookingForm({ roomId, checkInDate: '', totalMonthsStaying: 1 });
+    setShowBooking(true);
   };
 
   const handleReviewChange = (e) => {
@@ -331,46 +332,94 @@ const HostelDetails = () => {
           <StatCard title="Reviews" value={totalReviews} icon="✍️" />
         </div>
 
-        <div className="mb-6 border-b border-gray-200">
-          <div className="flex space-x-8">
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             <button
               onClick={() => setActiveTab('details')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
-                activeTab === 'details'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`flex items-center gap-2 py-3 px-6 rounded-lg border border-gray-200 font-medium text-base font-poppins text-gray-700 ${
+                activeTab === 'details' ? 'border-b-2 border-gray-700' : ''
               }`}
             >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
               Hostel Details
             </button>
             <button
               onClick={() => setActiveTab('amenities')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
-                activeTab === 'amenities'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`flex items-center gap-2 py-3 px-6 rounded-lg border border-gray-200 font-medium text-base font-poppins text-gray-700 ${
+                activeTab === 'amenities' ? 'border-b-2 border-gray-700' : ''
               }`}
             >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
               Hostel Features
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
-                activeTab === 'rooms'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`flex items-center gap-2 py-3 px-6 rounded-lg border border-gray-200 font-medium text-base font-poppins text-gray-700 ${
+                activeTab === 'rooms' ? 'border-b-2 border-gray-700' : ''
               }`}
             >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
               Rooms
             </button>
             <button
               onClick={() => setActiveTab('reviews')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm font-poppins ${
-                activeTab === 'reviews'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              className={`flex items-center gap-2 py-3 px-6 rounded-lg border border-gray-200 font-medium text-base font-poppins text-gray-700 ${
+                activeTab === 'reviews' ? 'border-b-2 border-gray-700' : ''
               }`}
             >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.915a1 1 0 00.95-.69l1.519-4.674z"
+                />
+              </svg>
               Reviews
             </button>
           </div>
@@ -429,60 +478,72 @@ const HostelDetails = () => {
           {activeTab === 'rooms' && (
             <div>
               <h3 className="text-lg font-medium mb-4 font-poppins">Available Rooms</h3>
-              {rooms.length > 0 ? (
+              {rooms.filter(room => room.isAvailable).length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {rooms.map((room) => (
-                    <div
-                      key={room._id}
-                      className="bg-white p-5 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-                    >
-                      <h4 className="text-xl font-semibold text-gray-800 mb-2 font-poppins">
-                        Room {room.roomNumber}
-                      </h4>
-                      <div className="space-y-1">
-                        <p className="text-gray-600 font-poppins">
-                          <span className="font-medium">Type:</span> {room.roomType}
-                        </p>
-                        <p className="text-gray-600 font-poppins">
-                          <span className="font-medium">Price:</span> Rs. {room.monthlyPrice.toLocaleString()}/month
-                        </p>
-                        <p className="text-gray-600 font-poppins">
-                          <span className="font-medium">Status:</span>{' '}
-                          <span
-                            className={
-                              room.isAvailable ? 'text-green-500' : 'text-red-500'
-                            }
+                  {rooms
+                    .filter(room => room.isAvailable)
+                    .map((room) => (
+                      <div
+                        key={room._id}
+                        className="bg-white rounded-xl shadow-lg overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                      >
+                        <div className="relative h-48">
+                          <img
+                            src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80"
+                            alt={`Room ${room.roomNumber}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                            Available
+                          </div>
+                        </div>
+                        <div className="p-5">
+                          <h4 className="text-xl font-semibold text-gray-800 mb-2 font-poppins">
+                            Room {room.roomNumber}
+                          </h4>
+                          <div className="space-y-2">
+                            <p className="text-gray-600 font-poppins">
+                              <span className="font-medium">Type:</span> {room.roomType}
+                            </p>
+                            <p className="text-gray-600 font-poppins">
+                              <span className="font-medium">Price:</span> Rs. {room.monthlyPrice.toLocaleString()}/month
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleSelectRoom(room._id)}
+                            className="mt-4 w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors duration-200 font-poppins"
                           >
-                            {room.isAvailable ? 'Available' : 'Not Available'}
-                          </span>
-                        </p>
+                            Book Now
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
-                <p className="text-gray-600 font-poppins">No rooms available.</p>
-              )}
-              <div className="flex flex-wrap gap-4 mt-6">
-                <button
-                  onClick={handleBookingToggle}
-                  className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition duration-200 font-poppins"
-                >
-                  {showBooking ? 'Cancel' : 'Book Now'}
-                </button>
-                {hostel.contact?.phone && (
-                  <a
-                    href={`tel:${hostel.contact.phone}`}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg transition duration-200 font-poppins"
+                <div className="bg-gray-100 rounded-lg p-8 text-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 mx-auto text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    Contact Owner
-                  </a>
-                )}
-              </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                    />
+                  </svg>
+                  <p className="mt-2 text-gray-500 font-poppins">No rooms are currently available.</p>
+                  <p className="mt-1 text-gray-400 font-poppins">Please check back later or contact the owner.</p>
+                </div>
+              )}
               {showBooking && (
                 <div className="bg-gray-50 p-6 rounded-lg shadow-sm mt-6">
                   <h2 className="text-xl font-bold mb-4 font-poppins">Book Your Stay</h2>
-                  {rooms.length === 0 ? (
+                  {rooms.filter(room => room.isAvailable).length === 0 ? (
                     <p className="text-gray-600 font-poppins">No rooms available at the moment.</p>
                   ) : (
                     <div className="space-y-4">
@@ -495,11 +556,13 @@ const HostelDetails = () => {
                           className="w-full px-4 py-2 border rounded-lg"
                         >
                           <option value="">Select a room</option>
-                          {rooms.map((room) => (
-                            <option key={room._id} value={room._id}>
-                              Room {room.roomNumber} ({room.roomType}) - Rs. {room.monthlyPrice}/month
-                            </option>
-                          ))}
+                          {rooms
+                            .filter(room => room.isAvailable)
+                            .map((room) => (
+                              <option key={room._id} value={room._id}>
+                                Room {room.roomNumber} ({room.roomType}) - Rs. {room.monthlyPrice}/month
+                              </option>
+                            ))}
                         </select>
                       </div>
                       <div>
@@ -511,44 +574,28 @@ const HostelDetails = () => {
                           onChange={handleBookingChange}
                           className="w-full px-4 py-2 border rounded-lg"
                           min={new Date().toISOString().split('T')[0]}
+                          required
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1 font-poppins">Check-out Date</label>
+                        <label className="block text-sm font-medium mb-1 font-poppins">Total Months Staying</label>
                         <input
-                          type="date"
-                          name="checkOutDate"
-                          value={bookingForm.checkOutDate}
+                          type="number"
+                          name="totalMonthsStaying"
+                          value={bookingForm.totalMonthsStaying}
                           onChange={handleBookingChange}
                           className="w-full px-4 py-2 border rounded-lg"
-                          min={bookingForm.checkInDate || new Date().toISOString().split('T')[0]}
+                          min="1"
+                          step="1"
+                          required
                         />
                       </div>
                       <button
-                        onClick={checkAvailability}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors font-poppins"
+                        onClick={handleBookNow}
+                        className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors font-poppins"
                       >
-                        Check Availability
+                        Confirm Booking
                       </button>
-                      {availability && (
-                        <div className="mt-4 p-4 bg-white rounded-lg shadow-sm">
-                          {availability.isAvailable ? (
-                            <>
-                              <p className="text-green-600 font-poppins">
-                                Room is available! Total Price: Rs. {availability.totalPrice}
-                              </p>
-                              <button
-                                onClick={handleBookNow}
-                                className="mt-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors font-poppins"
-                              >
-                                Confirm Booking
-                              </button>
-                            </>
-                          ) : (
-                            <p className="text-red-600 font-poppins">Room is not available for the selected dates.</p>
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>

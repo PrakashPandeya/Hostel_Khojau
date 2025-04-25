@@ -9,7 +9,8 @@ import RegisterHostelForm from './components/RegisterHostelForm';
 import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import PaymentCallback from './pages/PaymentCallback';
-import PendingApproval from './components/PendingApproval'; 
+import PendingApproval from './components/PendingApproval';
+import MyBookings from './pages/MyBookings'; // Added import for MyBookings
 
 function App() {
   return (
@@ -25,7 +26,8 @@ function App() {
         <Route path="/owner/hostels" element={<OwnerDashboard />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
-        <Route path="/pending-approval" element={<PendingApproval />} /> {/* Add the new route */}
+        <Route path="/pending-approval" element={<PendingApproval />} />
+        <Route path="/my-bookings" element={<MyBookings />} /> {/* Added route for MyBookings */}
       </Routes>
     </div>
   );

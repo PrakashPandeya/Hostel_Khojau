@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -9,7 +8,7 @@ const PaymentCallback = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const verifyPayment = async () => {
+    const handlePaymentCallback = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
         toast.error('Please login');
@@ -18,24 +17,18 @@ const PaymentCallback = () => {
       }
 
       const params = new URLSearchParams(location.search);
-      const paymentId = params.get('pidx');
-      const status = params.get('status') === 'Completed' ? 'Completed' : 'Failed';
+      const status = params.get('status');
 
-      try {
-        await axios.post(
-          'http://localhost:5000/api/bookings/payment/verify',
-          { payment_id: paymentId, status },
-          { headers: { 'x-auth-token': token } }
-        );
+      if (status === 'Completed') {
         toast.success('Payment verified successfully');
-        setTimeout(() => navigate('/home'), 1000);
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Payment verification failed');
-        setTimeout(() => navigate('/home'), 1000);
+      } else {
+        toast.error('Payment failed or was cancelled');
       }
+
+      setTimeout(() => navigate('/my-bookings'), 1000);
     };
 
-    verifyPayment();
+    handlePaymentCallback();
   }, [navigate, location]);
 
   return (

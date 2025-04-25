@@ -12,7 +12,11 @@ const Navbar = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      console.log('Current User Role:', parsedUser.role); // Debug log
+    } else {
+      setUser(null);
     }
   }, [location.pathname]); // Re-run when the route changes
 
@@ -24,12 +28,8 @@ const Navbar = () => {
     navigate('/home');
   };
 
-  // Directly check localStorage for the most up-to-date user data
-  const currentUser = user || (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null);
-
-  // Check if the current route is the owner dashboard or admin dashboard
-  const isOwnerDashboard = location.pathname === '/owner/hostels' && currentUser && currentUser.role === 'owner';
-  const isAdminDashboard = location.pathname === '/admin/dashboard' && currentUser && currentUser.role === 'admin';
+  const isOwnerDashboard = location.pathname === '/owner/hostels' && user && user.role === 'owner';
+  const isAdminDashboard = location.pathname === '/admin/dashboard' && user && user.role === 'admin';
 
   // Default navigation links
   const defaultNav = (
@@ -54,7 +54,19 @@ const Navbar = () => {
       >
         Hostels
       </NavLink>
-      {currentUser && currentUser.role === 'owner' && (
+      {user && user.role === 'user' && (
+        <NavLink
+          to="/my-bookings"
+          className={({ isActive }) =>
+            isActive
+              ? "text-black font-semibold text-lg underline underline-offset-4 font-poppins"
+              : "text-gray-600 text-lg hover:text-black hover:underline hover:underline-offset-4 transition-all font-poppins"
+          }
+        >
+          My Bookings
+        </NavLink>
+      )}
+      {user && user.role === 'owner' && (
         <>
           <NavLink
             to="/register-hostel"
@@ -78,7 +90,7 @@ const Navbar = () => {
           </NavLink>
         </>
       )}
-      {currentUser && currentUser.role === 'admin' && (
+      {user && user.role === 'admin' && (
         <NavLink
           to="/admin/dashboard"
           className={({ isActive }) =>
@@ -90,7 +102,7 @@ const Navbar = () => {
           Admin Dashboard
         </NavLink>
       )}
-      {currentUser ? (
+      {user ? (
         <button
           onClick={handleLogout}
           className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-poppins"
@@ -124,7 +136,7 @@ const Navbar = () => {
     </div>
   );
 
-  // Owner dashboard navigation
+  // Owner dashboard navigation (no "My Bookings")
   const ownerDashboardNav = (
     <div className="flex items-center gap-8 ml-auto mr-16">
       <NavLink
@@ -142,7 +154,7 @@ const Navbar = () => {
     </div>
   );
 
-  // Admin dashboard navigation
+  // Admin dashboard navigation (no "My Bookings")
   const adminDashboardNav = (
     <div className="flex items-center gap-8 ml-auto mr-16">
       <NavLink
@@ -162,17 +174,13 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 flex items-center justify-between py-4 px-8 bg-white border-b shadow-sm z-10">
-      {/* Left Section: Logo and Company Name */}
       <div className="flex items-center gap-3">
         <NavLink to="/home">
           <img src={HostelKhojauLogo} alt="Hostel Khojau Logo" className="h-20" />
         </NavLink>
         <span className="text-2xl font-bold text-red-600 font-poppins">Hostel Khojau</span>
       </div>
-
-      {/* Right Section: Navigation Links */}
       {isOwnerDashboard ? ownerDashboardNav : isAdminDashboard ? adminDashboardNav : defaultNav}
-
       <ToastContainer />
     </nav>
   );
