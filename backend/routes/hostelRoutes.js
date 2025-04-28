@@ -17,7 +17,6 @@ router.get('/', async (req, res) => {
       .populate('rooms')
       .populate('bookings')
       .lean();
-    console.log('Fetched hostels:', hostels); // Log the result
     res.json(hostels);
   } catch (err) {
     console.error('Error fetching hostels:', err.message);

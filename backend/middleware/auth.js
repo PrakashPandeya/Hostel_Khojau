@@ -20,10 +20,12 @@ module.exports = async (req, res, next) => {
             return res.status(401).json({ message: 'User not found' });
         }
 
-        // Allow pending owners to register hostels, but block other actions
+        // Allow pending owners to register hostels and view chats
         if (user.role === 'owner' && !user.isApproved) {
-            if (req.path === '/api/hostels' && req.method === 'POST') {
-                // Allow hostel registration submission
+            if (
+                (req.path === '/api/hostels' && req.method === 'POST') ||
+                (req.path.startsWith('/api/chats') && req.method === 'GET')
+            ) {
                 req.user = decoded.user;
                 return next();
             }

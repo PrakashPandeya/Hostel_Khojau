@@ -27,7 +27,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/pending-approval" element={<PendingApproval />} />
-        <Route path="/my-bookings" element={<MyBookings />} /> {/* Added route for MyBookings */}
+        <Route path="/my-bookings" element={<MyBookings />} /> 
       </Routes>
     </div>
   );

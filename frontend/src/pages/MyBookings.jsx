@@ -51,10 +51,10 @@ const MyBookings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="flex flex-col min-h-screen bg-gray-100">
         <Navbar />
-        <div className="flex justify-center items-center h-64">
-          <p className="text-lg font-poppins">Loading your bookings...</p>
+        <div className="flex-grow flex justify-center items-center">
+          <p className="text-lg font-poppins text-gray-700">Loading your bookings...</p>
         </div>
         <Footer />
       </div>
@@ -62,53 +62,53 @@ const MyBookings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-gray-100">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-6 font-poppins">My Bookings</h1>
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h1 className="text-4xl font-bold mb-8 font-poppins text-gray-800">My Bookings</h1>
         {bookings.length === 0 ? (
-          <p className="text-gray-600 font-poppins">You have no bookings yet.</p>
+          <p className="text-gray-600 font-poppins text-lg">You have no bookings yet.</p>
         ) : (
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {bookings.map((booking) => (
               <div
                 key={booking._id}
-                className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200"
+                className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100"
               >
-                <h2 className="text-xl font-semibold font-poppins">
+                <h2 className="text-xl font-semibold font-poppins text-gray-800 mb-3">
                   {booking.hostelId?.name || 'Unknown Hostel'}
                 </h2>
-                <div className="mt-2 space-y-1">
-                  <p className="text-gray-700 font-poppins">
-                    <span className="font-medium">Room:</span> {booking.roomId?.roomNumber} (
+                <div className="space-y-2 text-gray-600 font-poppins">
+                  <p>
+                    <span className="font-medium text-gray-700">Room:</span> {booking.roomId?.roomNumber} (
                     {booking.roomId?.roomType})
                   </p>
-                  <p className="text-gray-700 font-poppins">
-                    <span className="font-medium">Check-in Date:</span>{' '}
+                  <p>
+                    <span className="font-medium text-gray-700">Check-in Date:</span>{' '}
                     {new Date(booking.checkInDate).toLocaleDateString()}
                   </p>
-                  <p className="text-gray-700 font-poppins">
-                    <span className="font-medium">Total Months Staying:</span>{' '}
+                  <p>
+                    <span className="font-medium text-gray-700">Total Months Staying:</span>{' '}
                     {booking.totalMonthsStaying}
                   </p>
-                  <p className="text-gray-700 font-poppins">
-                    <span className="font-medium">Stay Ends On:</span>{' '}
+                  <p>
+                    <span className="font-medium text-gray-700">Stay Ends On:</span>{' '}
                     {calculateStayEndDate(booking.checkInDate, booking.totalMonthsStaying)}
                   </p>
-                  <p className="text-gray-700 font-poppins">
-                    <span className="font-medium">Total Price:</span> Rs.{' '}
+                  <p>
+                    <span className="font-medium text-gray-700">Total Price:</span> Rs.{' '}
                     {booking.totalPrice.toLocaleString()}
                   </p>
-                  <p className="text-gray-700 font-poppins">
-                    <span className="font-medium">Status:</span>{' '}
+                  <p className="flex items-center">
+                    <span className="font-medium text-gray-700">Status:</span>{' '}
                     <span
-                      className={
+                      className={`ml-2 px-2 py-1 rounded-full text-sm font-medium ${
                         booking.status === 'confirmed'
-                          ? 'text-green-500'
+                          ? 'bg-green-100 text-green-700'
                           : booking.status === 'pending'
-                          ? 'text-yellow-500'
-                          : 'text-red-500'
-                      }
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}
                     >
                       {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                     </span>
@@ -117,7 +117,7 @@ const MyBookings = () => {
                 {booking.status !== 'cancelled' && (
                   <button
                     onClick={() => handleCancelBooking(booking._id)}
-                    className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-poppins"
+                    className="mt-4 w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-200 font-poppins text-sm font-medium"
                   >
                     Cancel Booking
                   </button>
@@ -128,7 +128,7 @@ const MyBookings = () => {
         )}
       </main>
       <Footer />
-      <ToastContainer />
+      <ToastContainer autoClose={2000} />
     </div>
   );
 };

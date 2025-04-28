@@ -9,6 +9,7 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const ownerRoutes = require('./routes/ownerRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const { errorHandler } = require('./middleware/error');
 
 const app = express();
@@ -23,8 +24,8 @@ app.use(bodyParser.json());
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -33,6 +34,8 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/owner', ownerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/chats', chatRoutes);
+
 
 // Error handling middleware
 app.use(errorHandler);
