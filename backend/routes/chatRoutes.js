@@ -22,7 +22,6 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// Create a new chat or add a message to an existing chat
 router.post(
     '/',
     [

@@ -10,7 +10,7 @@ import OwnerDashboard from './pages/OwnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import PaymentCallback from './pages/PaymentCallback';
 import PendingApproval from './components/PendingApproval';
-import MyBookings from './pages/MyBookings'; // Added import for MyBookings
+import MyBookings from './pages/MyBookings'; 
 
 function App() {
   return (

@@ -28,7 +28,7 @@ router.post(
     authorize('owner'),
     check('roomNumber', 'Room number is required').not().isEmpty(),
     check('roomType', 'Room type is required').isIn(['Single', 'Double', 'Triple', 'Dorm']),
-    check('monthlyPrice', 'Monthly price is required').isNumeric() // Changed from price to monthlyPrice
+    check('monthlyPrice', 'Monthly price is required').isNumeric() //  pricing in monthlyPrice
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -46,7 +46,7 @@ router.post(
         hostel: req.params.hostelId,
         roomNumber: req.body.roomNumber,
         roomType: req.body.roomType,
-        monthlyPrice: req.body.monthlyPrice // Changed from price to monthlyPrice
+        monthlyPrice: req.body.monthlyPrice 
       });
 
       const newRoom = await room.save();

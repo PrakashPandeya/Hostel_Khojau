@@ -266,9 +266,7 @@ const RegisterHostelForm = () => {
                 ))}
               </div>
             )}
-            <p className="text-sm text-gray-500 mt-1">
-              Note: Images are stored as placeholder URLs. Implement proper file upload in production.
-            </p>
+            
           </div>
 
           {/* 360-Degree Images Upload (Optional) */}
@@ -301,9 +299,7 @@ const RegisterHostelForm = () => {
                 ))}
               </div>
             )}
-            <p className="text-sm text-gray-500 mt-1">
-              Note: 360-degree images are stored as placeholder URLs. Implement proper file upload in production.
-            </p>
+            
           </div>
 
           {/* Map Embed URL */}

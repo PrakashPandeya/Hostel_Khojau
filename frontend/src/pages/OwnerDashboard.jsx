@@ -62,7 +62,7 @@ const OwnerDashboard = () => {
         };
 
         fetchData();
-        const interval = setInterval(fetchData, 10000); // Poll every 10 seconds
+        const interval = setInterval(fetchData, 30000); // Poll every 30 seconds
         return () => clearInterval(interval);
     }, [navigate]);
 

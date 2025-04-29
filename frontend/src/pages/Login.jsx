@@ -39,7 +39,7 @@ function Login() {
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
             
-            // Redirect based on role
+            // Redirect based on  following role
             setTimeout(() => {
                 if (user.role === 'admin') {
                     navigate('/admin/dashboard');

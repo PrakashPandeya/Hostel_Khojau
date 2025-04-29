@@ -15,7 +15,6 @@ const HostelPage = () => {
       try {
         setLoading(true);
         const response = await axios.get('http://localhost:5000/api/hostels');
-        console.log('Hostels:', response.data); // Debug log
         setHostels(response.data);
       } catch (error) {
         console.error('Error fetching hostels:', error);
