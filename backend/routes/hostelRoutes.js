@@ -143,14 +143,13 @@ router.post(
 );
 
 // Update hostel
-router.put(
-  '/:id',
+router.put(  '/:id',
   [
     auth,
     authorize('owner', 'admin'),
     upload.fields([
-      { name: 'images', maxCount: 3 },
-      { name: 'images360', maxCount: 3 }
+      { name: 'newImages', maxCount: 3 },
+      { name: 'newImages360', maxCount: 3 }
     ])
   ],
   async (req, res) => {
@@ -166,16 +165,22 @@ router.put(
 
       const priceRange = JSON.parse(req.body.priceRange);
       const contact = JSON.parse(req.body.contact);
-      const amenities = JSON.parse(req.body.amenities);
+      const amenities = JSON.parse(req.body.amenities);      // Handle existing and new images
+      const existingImages = JSON.parse(req.body.existingImages || '[]');
+      const existingImages360 = JSON.parse(req.body.existingImages360 || '[]');
 
-      // Process uploaded files if they exist
-      const imageUrls = req.files['images'] 
-        ? req.files['images'].map(file => `/images/hostels/${file.filename}`)
-        : hostel.images;
+      // Process new uploaded files
+      const newImageUrls = req.files['newImages'] 
+        ? req.files['newImages'].map(file => `/images/hostels/${file.filename}`)
+        : [];
       
-      const image360Urls = req.files['images360']
-        ? req.files['images360'].map(file => `/images/hostels/${file.filename}`)
-        : hostel.images360;
+      const newImage360Urls = req.files['newImages360']
+        ? req.files['newImages360'].map(file => `/images/hostels/${file.filename}`)
+        : [];
+
+      // Combine existing and new images
+      const imageUrls = [...existingImages, ...newImageUrls];
+      const image360Urls = [...existingImages360, ...newImage360Urls];
 
       const updatedData = {
         name: req.body.name,
