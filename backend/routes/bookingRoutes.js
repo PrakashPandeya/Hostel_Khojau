@@ -140,25 +140,24 @@ router.get('/complete-khalti-payment', async (req, res) => {
   const {
     pidx,
     transaction_id,
-    amount,
     purchase_order_id,
   } = req.query;
 
   try {
-    const paymentInfo = await verifyKhaltiPayment(pidx);
-
-    if (
+    const paymentInfo = await verifyKhaltiPayment(pidx);    if (
       paymentInfo?.status !== 'Completed' ||
-      paymentInfo.transaction_id !== transaction_id ||
-      Number(paymentInfo.total_amount) !== Number(amount)
+      paymentInfo.transaction_id !== transaction_id
     ) {
       await Booking.findByIdAndUpdate(purchase_order_id, {
         $set: { status: 'cancelled', paymentStatus: 'failed' },
       });
-      await Room.findByIdAndUpdate((await Booking.findById(purchase_order_id)).roomId, { isAvailable: true });
+      const booking = await Booking.findById(purchase_order_id);
+      if (booking) {
+        await Room.findByIdAndUpdate(booking.roomId, { isAvailable: true });
+      }
       return res.status(400).json({
         success: false,
-        message: 'Incomplete payment information',
+        message: 'Payment verification failed',
         paymentInfo,
       });
     }
@@ -169,9 +168,7 @@ router.get('/complete-khalti-payment', async (req, res) => {
         success: false,
         message: 'Booking not found',
       });
-    }
-
-    if (booking.totalPrice * 100 !== Number(amount)) {
+    }    if (booking.totalPrice * 100 !== Number(paymentInfo.total_amount)) {
       await Booking.findByIdAndUpdate(purchase_order_id, {
         $set: { status: 'cancelled', paymentStatus: 'failed' },
       });
@@ -208,6 +205,63 @@ router.get('/complete-khalti-payment', async (req, res) => {
       success: false,
       message: 'Payment verification failed',
       error: err.message,
+    });
+  }
+});
+
+// Get booking by ID
+router.get('/booking/:id', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('hostelId', 'name')
+      .populate('roomId', 'roomNumber roomType monthlyPrice');
+    
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Only allow the booking user or the hostel owner to access the details
+    if (booking.userId.toString() !== req.user.id && 
+        !(await Hostel.findOne({ _id: booking.hostelId, owner: req.user.id }))) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Handle payment cancellation
+router.post('/:bookingId/cancel-payment', auth, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Only allow cancellation by the booking user
+    if (booking.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Update booking status
+    booking.status = 'cancelled';
+    booking.paymentStatus = 'cancelled';
+    await booking.save();
+
+    // Make room available again
+    await Room.findByIdAndUpdate(booking.roomId, { isAvailable: true });
+
+    res.json({ 
+      success: true,
+      message: 'Payment cancelled successfully'
+    });
+  } catch (err) {
+    console.error('Error cancelling payment:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to cancel payment'
     });
   }
 });

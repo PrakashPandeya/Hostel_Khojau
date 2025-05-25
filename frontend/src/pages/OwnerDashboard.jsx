@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import EditHostelModal from '../components/EditHostelModal';
 
 const OwnerDashboard = () => {
     const navigate = useNavigate();
@@ -19,6 +20,8 @@ const OwnerDashboard = () => {
         monthlyPrice: ''
     });
     const [chatReplies, setChatReplies] = useState({});
+    const [selectedHostel, setSelectedHostel] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -157,6 +160,38 @@ const OwnerDashboard = () => {
         }
     };
 
+    const handleEditHostel = (hostel) => {
+        setSelectedHostel(hostel);
+        setShowEditModal(true);
+    };    const handleUpdateHostel = async (updatedData) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await axios.put(
+                `/api/hostels/${selectedHostel._id}`,
+                updatedData,
+                { 
+                    headers: { 
+                        'x-auth-token': token,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+            
+            if (response.data) {
+                toast.success('Hostel updated successfully');
+                // Refresh hostels data
+                const hostelResponse = await axios.get('/api/owner/hostels', {
+                    headers: { 'x-auth-token': token }
+                });
+                setHostels(hostelResponse.data);
+                setShowEditModal(false);
+            }
+        } catch (err) {
+            console.error('Update error:', err);
+            toast.error(err.response?.data?.message || 'Failed to update hostel');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50">
@@ -193,7 +228,7 @@ const OwnerDashboard = () => {
                             {hostels.map(hostel => (
                                 <div
                                     key={hostel._id}
-                                    className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition transform hover:-translate-y-1"
+                                    className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
                                 >
                                     <h3 className="text-xl font-semibold text-gray-800 mb-2">{hostel.name}</h3>
                                     <p className="text-gray-600 mb-2">
@@ -206,12 +241,18 @@ const OwnerDashboard = () => {
                                         </span>
                                     </p>
                                     <p className="text-gray-600 mb-4">Rooms: {hostel.rooms.length}</p>
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2">
                                         <button
                                             onClick={() => navigate(`/hostels/${hostel._id}`)}
                                             className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                                         >
                                             View
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditHostel(hostel)}
+                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                                        >
+                                            Edit
                                         </button>
                                         <button
                                             onClick={() => handleDeleteHostel(hostel._id)}
@@ -225,6 +266,15 @@ const OwnerDashboard = () => {
                         </div>
                     )}
                 </section>
+
+                {/* Edit Hostel Modal */}
+                {showEditModal && selectedHostel && (
+                    <EditHostelModal
+                        hostel={selectedHostel}
+                        onClose={() => setShowEditModal(false)}
+                        onUpdate={handleUpdateHostel}
+                    />
+                )}
 
                 {/* Chats Section */}
                 <section className="mb-12">
@@ -416,8 +466,8 @@ const OwnerDashboard = () => {
                                     className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
                                 >
                                     <h3 className="text-lg font-semibold text-gray-800 mb-2">Booking Details</h3>
-                                    <p className="text-gray-600">Room: {booking.room.roomNumber} ({booking.room.roomType})</p>
-                                    <p className="text-gray-600">User: {booking.user.name}</p>
+                                    <p className="text-gray-600">Room: {booking.roomId.roomNumber} ({booking.roomId.roomType})</p>
+                                    <p className="text-gray-600">User: {booking.userId.name}</p>
                                     <p className="text-gray-600">Check-in Date: {new Date(booking.checkInDate).toLocaleDateString()}</p>
                                     <p className="text-gray-600">Duration: {booking.totalMonthsStaying} month(s)</p>
                                     <p className="text-gray-600">Payment Status: <span className={

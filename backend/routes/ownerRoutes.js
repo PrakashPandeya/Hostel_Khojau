@@ -66,9 +66,10 @@ router.get('/bookings', [auth, authorize('owner')], async (req, res) => {
   try {
     const hostels = await Hostel.find({ owner: req.user.id });
     const hostelIds = hostels.map(h => h._id);
-    const bookings = await Booking.find({ hostel: { $in: hostelIds } })
-      .populate('user')
-      .populate('room');
+    const bookings = await Booking.find({ hostelId: { $in: hostelIds } })
+      .populate('userId', 'name email')
+      .populate('hostelId', 'name')
+      .populate('roomId', 'roomNumber roomType monthlyPrice');
     res.json(bookings);
   } catch (err) {
     res.status(500).json({ message: err.message });

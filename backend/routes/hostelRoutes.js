@@ -6,13 +6,32 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { authorize } = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for image upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '../../frontend/public/images/hostels');
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Get all hostels
 router.get('/', async (req, res) => {
   try {
     const query = req.query.featured === 'true' ? { isFeatured: true } : {};
     const hostels = await Hostel.find(query)
-      .select('-images -images360')
       .populate('owner', 'name email')
       .populate('rooms')
       .populate('bookings')
@@ -60,33 +79,52 @@ router.post(
   [
     auth,
     authorize('owner'),
-    check('name', 'Name is required').not().isEmpty(),
-    check('location', 'Location is required').not().isEmpty(),
-    check('city', 'City is required').not().isEmpty(),
-    check('hostelType', 'Hostel type is required').isIn(['Boys Hostel', 'Girls Hostel', 'Co-ed']),
-    check('priceRange.min', 'Minimum price is required').isNumeric(),
-    check('priceRange.max', 'Maximum price is required').isNumeric(),
-    check('description', 'Description is required').not().isEmpty(),
-    check('images', 'Images must be an array').isArray().optional(),
-    check('images', 'Maximum 3 images allowed').custom((value) => !value || value.length <= 3),
-    check('images.*', 'Each image must be a string').isString().optional(),
-    check('images360', '360-degree images must be an array').isArray().optional(),
-    check('images360.*', 'Each 360-degree image must be a string').isString().optional(),
+    upload.fields([
+      { name: 'images', maxCount: 3 },
+      { name: 'images360', maxCount: 3 }
+    ])
   ],
   async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     try {
+      // Parse JSON strings back to objects
+      const priceRange = JSON.parse(req.body.priceRange);
+      const contact = JSON.parse(req.body.contact);
+      const amenities = JSON.parse(req.body.amenities);
+
+      // Validate the data
+      if (!req.body.name || !req.body.location || !req.body.city || !req.body.hostelType) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      if (!priceRange.min || !priceRange.max) {
+        return res.status(400).json({ message: 'Price range is required' });
+      }
+
       const user = await User.findById(req.user.id);
+      
+      // Process uploaded files
+      const imageUrls = req.files['images'] 
+        ? req.files['images'].map(file => `/images/hostels/${file.filename}`)
+        : [];
+      
+      const image360Urls = req.files['images360']
+        ? req.files['images360'].map(file => `/images/hostels/${file.filename}`)
+        : [];
+
       const hostelData = {
-        ...req.body,
+        name: req.body.name,
+        location: req.body.location,
+        city: req.body.city,
+        description: req.body.description,
+        hostelType: req.body.hostelType,
+        priceRange,
+        contact,
+        amenities,
+        mapEmbedUrl: req.body.mapEmbedUrl,
         owner: req.user.id,
         status: user.isApproved ? 'active' : 'pending',
-        images: req.body.images || [],
-        images360: req.body.images360 || [],
+        images: imageUrls,
+        images360: image360Urls,
       };
 
       const hostel = new Hostel(hostelData);
@@ -107,7 +145,14 @@ router.post(
 // Update hostel
 router.put(
   '/:id',
-  [auth, authorize('owner', 'admin')],
+  [
+    auth,
+    authorize('owner', 'admin'),
+    upload.fields([
+      { name: 'images', maxCount: 3 },
+      { name: 'images360', maxCount: 3 }
+    ])
+  ],
   async (req, res) => {
     try {
       const hostel = await Hostel.findById(req.params.id);
@@ -119,11 +164,40 @@ router.put(
         return res.status(403).json({ message: 'Not authorized' });
       }
 
-      Object.assign(hostel, req.body);
+      const priceRange = JSON.parse(req.body.priceRange);
+      const contact = JSON.parse(req.body.contact);
+      const amenities = JSON.parse(req.body.amenities);
+
+      // Process uploaded files if they exist
+      const imageUrls = req.files['images'] 
+        ? req.files['images'].map(file => `/images/hostels/${file.filename}`)
+        : hostel.images;
+      
+      const image360Urls = req.files['images360']
+        ? req.files['images360'].map(file => `/images/hostels/${file.filename}`)
+        : hostel.images360;
+
+      const updatedData = {
+        name: req.body.name,
+        location: req.body.location,
+        city: req.body.city,
+        description: req.body.description,
+        hostelType: req.body.hostelType,
+        priceRange,
+        contact,
+        amenities,
+        mapEmbedUrl: req.body.mapEmbedUrl,
+        images: imageUrls,
+        images360: image360Urls
+      };
+
+      // Update the hostel
+      Object.assign(hostel, updatedData);
       const updatedHostel = await hostel.save();
+      
       res.json(updatedHostel);
     } catch (err) {
-      console.error('Error updating hostel:', err.message);
+      console.error('Error updating hostel:', err);
       res.status(400).json({ message: 'Failed to update hostel: ' + err.message });
     }
   }

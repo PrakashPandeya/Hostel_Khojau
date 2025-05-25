@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
@@ -48,13 +48,17 @@ const RegisterHostelForm = () => {
   const handleImagesChange = (e, field) => {
     const files = Array.from(e.target.files);
     
-    if (field === 'images' && files.length + formData.images.length > 3) {
+    if (field === 'images' && files.length + formData[field].length > 3) {
       toast.error('You can upload a maximum of 3 images.');
       return;
     }
 
-    // Simulate file upload by generating placeholder URLs
-    const newImages = files.map((file, index) => `/images/${field}-${Date.now()}-${index}.jpg`);
+    // Create object URLs for preview
+    const newImages = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+
     setFormData((prev) => ({
       ...prev,
       [field]: [...prev[field], ...newImages],
@@ -62,11 +66,30 @@ const RegisterHostelForm = () => {
   };
 
   const handleRemoveImage = (index, field) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index),
-    }));
+    setFormData((prev) => {
+      const updatedImages = prev[field].filter((_, i) => i !== index);
+      // Revoke the object URL to avoid memory leaks
+      if (prev[field][index]?.preview) {
+        URL.revokeObjectURL(prev[field][index].preview);
+      }
+      return {
+        ...prev,
+        [field]: updatedImages,
+      };
+    });
   };
+
+  useEffect(() => {
+    // Cleanup object URLs when component unmounts
+    return () => {
+      formData.images.forEach(image => {
+        if (image.preview) URL.revokeObjectURL(image.preview);
+      });
+      formData.images360.forEach(image => {
+        if (image.preview) URL.revokeObjectURL(image.preview);
+      });
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,13 +101,44 @@ const RegisterHostelForm = () => {
     }
 
     try {
-      await axios.post('/api/hostels', formData, {
-        headers: { 'x-auth-token': token },
+      const formDataToSend = new FormData();
+
+      // Add basic fields
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('city', formData.city);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('hostelType', formData.hostelType);
+      formDataToSend.append('mapEmbedUrl', formData.mapEmbedUrl);
+
+      // Add nested objects as JSON strings
+      formDataToSend.append('priceRange', JSON.stringify(formData.priceRange));
+      formDataToSend.append('contact', JSON.stringify(formData.contact));
+      formDataToSend.append('amenities', JSON.stringify(formData.amenities));
+
+      // Add image files
+      formData.images.forEach((image) => {
+        formDataToSend.append('images', image.file);
       });
-      toast.success('Hostel registration submitted. Pending admin approval.');
-      setTimeout(() => navigate('/owner/hostels'), 1000);
+
+      // Add 360° image files
+      formData.images360.forEach((image) => {
+        formDataToSend.append('images360', image.file);
+      });
+
+      const response = await axios.post('/api/hostels', formDataToSend, {
+        headers: { 
+          'x-auth-token': token,
+          'Content-Type': 'multipart/form-data'
+        },
+      });
+
+      if (response.data) {
+        toast.success('Hostel registration submitted. Pending admin approval.');
+        setTimeout(() => navigate('/owner/hostels'), 1000);
+      }
     } catch (err) {
-      console.error('Registration error:', err.response?.status, err.response?.data);
+      console.error('Registration error:', err.response?.data);
       toast.error(err.response?.data?.message || 'Registration failed');
     }
   };
@@ -251,14 +305,18 @@ const RegisterHostelForm = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {formData.images.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {formData.images.map((image, index) => (
                   <div key={index} className="relative">
-                    <span className="text-sm text-gray-600">{image}</span>
+                    <img
+                      src={image.preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded"
+                    />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index, 'images')}
-                      className="ml-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
                     >
                       ×
                     </button>
@@ -266,10 +324,9 @@ const RegisterHostelForm = () => {
                 ))}
               </div>
             )}
-            
           </div>
 
-          {/* 360-Degree Images Upload (Optional) */}
+          {/* 360-Degree Images Upload */}
           <div>
             <label htmlFor="images360" className="block text-sm font-medium text-gray-700 mb-1">
               Upload 360-Degree Images (Optional)
@@ -284,14 +341,18 @@ const RegisterHostelForm = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             {formData.images360.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 grid grid-cols-3 gap-2">
                 {formData.images360.map((image, index) => (
                   <div key={index} className="relative">
-                    <span className="text-sm text-gray-600">{image}</span>
+                    <img
+                      src={image.preview}
+                      alt={`360° Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded"
+                    />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index, 'images360')}
-                      className="ml-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
                     >
                       ×
                     </button>
@@ -299,7 +360,6 @@ const RegisterHostelForm = () => {
                 ))}
               </div>
             )}
-            
           </div>
 
           {/* Map Embed URL */}
