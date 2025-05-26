@@ -167,7 +167,7 @@ const OwnerDashboard = () => {
         const token = localStorage.getItem('token');
         try {
             const response = await axios.put(
-                `/api/hostels/${selectedHostel._id}`,
+                `http://localhost:5000/api/hostels/${selectedHostel._id}`,
                 updatedData,
                 { 
                     headers: { 
@@ -179,12 +179,31 @@ const OwnerDashboard = () => {
             
             if (response.data) {
                 toast.success('Hostel updated successfully');
-                // Refresh hostels data
-                const hostelResponse = await axios.get('/api/owner/hostels', {
+                
+                // Refresh hostels data with cache busting
+                const timestamp = Date.now();
+                const hostelResponse = await axios.get('http://localhost:5000/api/owner/hostels', {
                     headers: { 'x-auth-token': token }
                 });
-                setHostels(hostelResponse.data);
+
+                // Update hostel data with timestamped image URLs
+                const updatedHostels = hostelResponse.data.map(hostel => ({
+                    ...hostel,
+                    images: (hostel.images || []).map(img => {
+                        const separator = img.includes('?') ? '&' : '?';
+                        return `${img}${separator}t=${timestamp}`;
+                    }),
+                    images360: (hostel.images360 || []).map(img => {
+                        const separator = img.includes('?') ? '&' : '?';
+                        return `${img}${separator}t=${timestamp}`;
+                    })
+                }));
+
+                setHostels(updatedHostels);
                 setShowEditModal(false);
+
+                // Broadcast image update event
+                window.dispatchEvent(new CustomEvent('hostelImagesUpdated', { detail: { hostelId: selectedHostel._id } }));
             }
         } catch (err) {
             console.error('Update error:', err);
@@ -224,12 +243,21 @@ const OwnerDashboard = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {hostels.map(hostel => (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">                    {hostels.map(hostel => (
                                 <div
                                     key={hostel._id}
                                     className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition"
-                                >
+                                >                    <div className="mb-4 relative overflow-hidden rounded-lg">
+                                        <img
+                                            src={hostel.images && hostel.images[0] ? hostel.images[0] : 'https://via.placeholder.com/300x200'}
+                                            alt={hostel.name}
+                                            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
+                                            key={hostel.images && hostel.images[0]} // Force re-render on image change
+                                            onError={(e) => {
+                                                e.target.src = 'https://via.placeholder.com/300x200';
+                                            }}
+                                        />
+                                    </div>
                                     <h3 className="text-xl font-semibold text-gray-800 mb-2">{hostel.name}</h3>
                                     <p className="text-gray-600 mb-2">
                                         Status: <span className={

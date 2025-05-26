@@ -10,6 +10,20 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Function to remove old image files
+const removeOldImages = (oldImages, newImages) => {
+  oldImages.forEach(img => {
+    if (!newImages.includes(img)) {
+      const imagePath = path.join(__dirname, '../../frontend/public', new URL(img).pathname);
+      if (fs.existsSync(imagePath)) {
+        fs.unlink(imagePath, err => {
+          if (err) console.error('Error deleting old image:', err);
+        });
+      }
+    }
+  });
+};
+
 // Configure multer for image upload
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -169,13 +183,13 @@ router.put(  '/:id',
       const existingImages = JSON.parse(req.body.existingImages || '[]');
       const existingImages360 = JSON.parse(req.body.existingImages360 || '[]');
 
-      // Process new uploaded files
+      // Process new uploaded files      const baseUrl = 'http://localhost:5000'; // TODO: Replace with env variable
       const newImageUrls = req.files['newImages'] 
-        ? req.files['newImages'].map(file => `/images/hostels/${file.filename}`)
+        ? req.files['newImages'].map(file => `${baseUrl}/images/hostels/${file.filename}`)
         : [];
       
       const newImage360Urls = req.files['newImages360']
-        ? req.files['newImages360'].map(file => `/images/hostels/${file.filename}`)
+        ? req.files['newImages360'].map(file => `${baseUrl}/images/hostels/${file.filename}`)
         : [];
 
       // Combine existing and new images
@@ -194,12 +208,19 @@ router.put(  '/:id',
         mapEmbedUrl: req.body.mapEmbedUrl,
         images: imageUrls,
         images360: image360Urls
-      };
+      };      // Remove old images that are no longer used
+      const oldImages = [...hostel.images, ...hostel.images360];
+      const newImages = [...updatedData.images, ...updatedData.images360];
+      removeOldImages(oldImages, newImages);
 
       // Update the hostel
       Object.assign(hostel, updatedData);
       const updatedHostel = await hostel.save();
       
+      // Remove old images that are not in the new upload
+      removeOldImages(existingImages, newImageUrls);
+      removeOldImages(existingImages360, newImage360Urls);
+
       res.json(updatedHostel);
     } catch (err) {
       console.error('Error updating hostel:', err);

@@ -17,6 +17,7 @@ const HostelDetails = () => {
     const [show360, setShow360] = useState(false);
     const [showBooking, setShowBooking] = useState(false);
     const [showChat, setShowChat] = useState(false);
+    const [imageTimestamp, setImageTimestamp] = useState(Date.now());
     const [bookingForm, setBookingForm] = useState({
         roomId: '',
         checkInDate: '',
@@ -39,7 +40,30 @@ const HostelDetails = () => {
                     axios.get(`/api/hostels/${id}`),
                     axios.get(`/api/hostels/${id}/rooms`),
                 ]);
-                setHostel(hostelResponse.data);
+
+                // Add timestamp to force image reload
+                const hostelData = hostelResponse.data;
+                
+                // Update image URLs with cache busting
+                if (hostelData.images) {
+                    hostelData.images = hostelData.images.map(img => {
+                        // Handle both relative and absolute URLs
+                        const baseUrl = img.startsWith('http') ? '' : 'http://localhost:5000';
+                        const fullUrl = `${baseUrl}${img}`;
+                        const separator = fullUrl.includes('?') ? '&' : '?';
+                        return `${fullUrl}${separator}t=${imageTimestamp}`;
+                    });
+                }
+                if (hostelData.images360) {
+                    hostelData.images360 = hostelData.images360.map(img => {
+                        const baseUrl = img.startsWith('http') ? '' : 'http://localhost:5000';
+                        const fullUrl = `${baseUrl}${img}`;
+                        const separator = fullUrl.includes('?') ? '&' : '?';
+                        return `${fullUrl}${separator}t=${imageTimestamp}`;
+                    });
+                }
+
+                setHostel(hostelData);
                 setRooms(roomsResponse.data);
             } catch (err) {
                 setError(err.message);
@@ -49,7 +73,7 @@ const HostelDetails = () => {
         };
 
         fetchHostelDetails();
-    }, [id]);
+    }, [id, imageTimestamp]); // Added imageTimestamp as dependency
 
     useEffect(() => {
         if (showChat && token && userId) {
@@ -75,6 +99,19 @@ const HostelDetails = () => {
             setChat(null);
         }
     }, [showChat, token, userId, id]);
+
+    useEffect(() => {
+        const handleImagesUpdated = (event) => {
+            if (event.detail.hostelId === id) {
+                setImageTimestamp(Date.now()); // Force image refresh
+            }
+        };
+
+        window.addEventListener('hostelImagesUpdated', handleImagesUpdated);
+        return () => {
+            window.removeEventListener('hostelImagesUpdated', handleImagesUpdated);
+        };
+    }, [id]);
 
     const handleBookingChange = (e) => {
         const { name, value } = e.target;
@@ -305,7 +342,7 @@ const HostelDetails = () => {
                             <div className="grid grid-cols-1 gap-6">
                                 {hostel.images360.map((url, index) => (
                                     <div
-                                        key={`360-${index}`}
+                                        key={`360-${index}-${imageTimestamp}`}
                                         className="relative w-full aspect-[4/3] rounded-xl overflow-hidden shadow-lg"
                                     >
                                         <iframe
@@ -315,6 +352,11 @@ const HostelDetails = () => {
                                             allowFullScreen
                                             loading="lazy"
                                             title={`360° View of ${hostel.name} - ${index + 1}`}
+                                            key={`${url}-${imageTimestamp}`}
+                                            onError={(e) => {
+                                                const container = e.target.parentElement;
+                                                container.innerHTML = '<div class="flex items-center justify-center h-full bg-gray-100"><p class="text-gray-500">360° View not available</p></div>';
+                                            }}
                                         />
                                         <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-poppins">
                                             360° View
@@ -346,7 +388,7 @@ const HostelDetails = () => {
                             {hostel.images?.length > 0 ? (
                                 hostel.images.map((img, index) => (
                                     <div
-                                        key={index}
+                                        key={`img-${index}-${imageTimestamp}`}
                                         className="group relative rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300"
                                     >
                                         <img
@@ -354,6 +396,10 @@ const HostelDetails = () => {
                                             alt={`${hostel.name} - Photo ${index + 1}`}
                                             className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                                             loading="lazy"
+                                            key={`${img}-${imageTimestamp}`}
+                                            onError={(e) => {
+                                                e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                                            }}
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                                             <span className="text-white font-medium font-poppins">Photo {index + 1}</span>
@@ -765,10 +811,9 @@ const HostelDetails = () => {
                                                     ? 'bg-blue-500 text-white'
                                                     : 'bg-gray-200 text-gray-800'
                                             }`}
-                                        >
-                                            <p className="text-xs font-bold mb-1 font-poppins">
-                                                {msg.sender._id === userId ? 'User' : 'Owner'}
-                                            </p>
+                                        >                            <p className="text-xs font-bold mb-1 font-poppins">
+                                {msg.sender._id === userId ? 'You' : 'Message Owner'}
+                            </p>
                                             <p className="text-sm font-poppins">{msg.content}</p>
                                             <p className="text-xs text-gray-400 mt-1 font-poppins">
                                                 {new Date(msg.createdAt).toLocaleString()}

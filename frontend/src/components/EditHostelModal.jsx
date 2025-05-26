@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, setFormData] = useState({
+const EditHostelModal = ({ hostel, onClose, onUpdate }) => {
+  const [formData, setFormData] = useState({
     name: hostel.name || '',
     location: hostel.location || '',
     city: hostel.city || '',
@@ -18,9 +19,11 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
       phone: hostel.contact?.phone || '',
       email: hostel.contact?.email || ''
     },
-    images: hostel.images || [],
-    images360: hostel.images360 || []
-  });  const handleChange = (e) => {
+    images: (hostel.images || []).map(url => ({ url, isExisting: true })),
+    images360: (hostel.images360 || []).map(url => ({ url, isExisting: true }))
+  });
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
@@ -28,65 +31,84 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
       
       if (parent === 'priceRange') {
         const numValue = parseInt(value, 10);
-        newValue = isNaN(numValue) ? 0 : numValue;
-
-        // Validate min/max relationship
-        if (child === 'min' && newValue > formData.priceRange.max) {
-          newValue = formData.priceRange.max;
-        }
-        if (child === 'max' && newValue < formData.priceRange.min) {
-          newValue = formData.priceRange.min;
-        }
+        newValue = isNaN(numValue) ? 0 : Math.max(0, numValue);
       }
 
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        [parent]: { ...prev[parent], [child]: newValue },
+        [parent]: { ...prev[parent], [child]: newValue }
       }));
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
   const handleAmenitiesChange = (e) => {
     const { value, checked } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       amenities: checked
         ? [...prev.amenities, value]
-        : prev.amenities.filter((a) => a !== value),
+        : prev.amenities.filter(a => a !== value)
     }));
   };
-
   const handleImagesChange = (e, field) => {
     const files = Array.from(e.target.files);
+    const currentImages = formData[field].filter(img => img.isExisting);
+    const maxImages = 3;
     
-    if (field === 'images' && files.length + formData[field].length > 3) {
-      toast.error('You can upload a maximum of 3 images.');
+    if (field === 'images' && files.length + currentImages.length > maxImages) {
+      toast.error(`Maximum ${maxImages} images allowed`);
       return;
     }
 
-    // Create object URLs for preview
-    const newImages = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file)
-    }));
+    // Clean up any existing preview URLs
+    formData[field].forEach(image => {
+      if (image.preview && !image.isExisting) {
+        URL.revokeObjectURL(image.preview);
+      }
+    });    // Create preview URLs for new images
+    const newImages = files.map(file => {
+      const preview = URL.createObjectURL(file);
+      return {
+        file,
+        preview,
+        isExisting: false,
+        timestamp: Date.now(),
+        // Store the URL to clean up later
+        _previewUrl: preview
+      };
+    });
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [field]: [...prev[field], ...newImages],
+      [field]: [...currentImages, ...newImages]
     }));
   };
-
   const handleRemoveImage = (index, field) => {
-    setFormData((prev) => {
-      const updatedImages = prev[field].filter((_, i) => i !== index);
-      if (prev[field][index]?.preview) {
-        URL.revokeObjectURL(prev[field][index].preview);
+    setFormData(prev => {
+      const updatedImages = [...prev[field]];
+      const removedImage = updatedImages[index];
+      
+      // Cleanup preview URL if it exists
+      if (removedImage.preview) {
+        URL.revokeObjectURL(removedImage.preview);
       }
+      
+      // Remove the image
+      updatedImages.splice(index, 1);
+
+      // If all images are removed, ensure the array is empty
+      if (updatedImages.length === 0) {
+        return {
+          ...prev,
+          [field]: []
+        };
+      }
+      
       return {
         ...prev,
-        [field]: updatedImages,
+        [field]: updatedImages
       };
     });
   };
@@ -94,8 +116,22 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate required fields
+    if (!formData.name || !formData.location || !formData.city || !formData.description || !formData.hostelType) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     // Validate price range
-    if (formData.priceRange.max < formData.priceRange.min) {
+    const minPrice = parseInt(formData.priceRange.min, 10);
+    const maxPrice = parseInt(formData.priceRange.max, 10);
+    
+    if (isNaN(minPrice) || isNaN(maxPrice) || minPrice < 0 || maxPrice < 0) {
+      toast.error('Please enter valid prices');
+      return;
+    }
+
+    if (maxPrice < minPrice) {
       toast.error('Maximum price cannot be less than minimum price');
       return;
     }
@@ -103,54 +139,49 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
     try {
       const formDataToSend = new FormData();
 
-      // Add basic fields
+      // Add basic text fields
       formDataToSend.append('name', formData.name);
       formDataToSend.append('location', formData.location);
       formDataToSend.append('city', formData.city);
       formDataToSend.append('description', formData.description);
       formDataToSend.append('hostelType', formData.hostelType);
-      formDataToSend.append('mapEmbedUrl', formData.mapEmbedUrl);      // Handle price range validation and conversion
-      const minPrice = parseInt(formData.priceRange.min, 10);
-      const maxPrice = parseInt(formData.priceRange.max, 10);
-      
-      if (isNaN(minPrice) || isNaN(maxPrice)) {
-        toast.error('Price range must be valid numbers');
-        return;
-      }
+      formDataToSend.append('mapEmbedUrl', formData.mapEmbedUrl);
 
-      formDataToSend.append('priceRange', JSON.stringify({
-        min: minPrice,
-        max: maxPrice
-      }));
+      // Add objects as JSON strings
+      formDataToSend.append('priceRange', JSON.stringify({ min: minPrice, max: maxPrice }));
       formDataToSend.append('contact', JSON.stringify(formData.contact));
       formDataToSend.append('amenities', JSON.stringify(formData.amenities));
 
-      // Add image files if they exist
-      if (formData.images.length > 0) {
-        formData.images.forEach((image) => {
-          if (image.file) {
-            formDataToSend.append('images', image.file);
-          }
-        });
-      }
+      // Handle existing images
+      const existingImages = formData.images
+        .filter(img => img.isExisting)
+        .map(img => img.url);
+      
+      const existingImages360 = formData.images360
+        .filter(img => img.isExisting)
+        .map(img => img.url);
 
-      // Add 360° image files if they exist
-      if (formData.images360.length > 0) {
-        formData.images360.forEach((image) => {
-          if (image.file) {
-            formDataToSend.append('images360', image.file);
-          }
-        });
-      }
+      formDataToSend.append('existingImages', JSON.stringify(existingImages));
+      formDataToSend.append('existingImages360', JSON.stringify(existingImages360));
+
+      // Add new image files
+      formData.images
+        .filter(img => !img.isExisting)
+        .forEach(img => formDataToSend.append('newImages', img.file));
+
+      formData.images360
+        .filter(img => !img.isExisting)
+        .forEach(img => formDataToSend.append('newImages360', img.file));
 
       await onUpdate(formDataToSend);
       onClose();
     } catch (error) {
+      console.error('Update error:', error);
       toast.error('Failed to update hostel details');
     }
   };
 
-  // Cleanup object URLs
+  // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
       formData.images.forEach(image => {
@@ -258,31 +289,31 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Minimum Price
+                Minimum Price (Rs.)
               </label>
               <input
                 type="number"
                 name="priceRange.min"
                 value={formData.priceRange.min}
                 onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 step="100"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Maximum Price
+                Maximum Price (Rs.)
               </label>
               <input
                 type="number"
                 name="priceRange.max"
                 value={formData.priceRange.max}
                 onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min={formData.priceRange.min}
                 step="100"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
@@ -293,7 +324,7 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Amenities
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {['Wi-Fi', 'Food', 'Laundry', 'Parking', 'AC', 'Gym'].map((amenity) => (
                 <label key={amenity} className="flex items-center text-gray-600">
                   <input
@@ -312,7 +343,7 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
           {/* Images */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Update Images (Up to 3)
+              Update Images (Max 3)
             </label>
             <input
               type="file"
@@ -327,14 +358,14 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
                 {formData.images.map((image, index) => (
                   <div key={index} className="relative">
                     <img
-                      src={image.preview}
+                      src={image.preview || image.url}
                       alt={`Preview ${index + 1}`}
                       className="w-full h-32 object-cover rounded"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index, 'images')}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center hover:bg-red-600"
                     >
                       ×
                     </button>
@@ -347,7 +378,7 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
           {/* 360° Images */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Update 360° Images (Optional)
+              Update 360° Images
             </label>
             <input
               type="file"
@@ -362,14 +393,14 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
                 {formData.images360.map((image, index) => (
                   <div key={index} className="relative">
                     <img
-                      src={image.preview}
+                      src={image.preview || image.url}
                       alt={`360° Preview ${index + 1}`}
                       className="w-full h-32 object-cover rounded"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index, 'images360')}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center hover:bg-red-600"
                     >
                       ×
                     </button>
@@ -384,17 +415,14 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Map Embed URL (Optional)
             </label>
-            <div className="space-y-2">
-              <input
-                type="text"
-                name="mapEmbedUrl"
-                value={formData.mapEmbedUrl}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Paste any Google Maps URL or embed code"
-              />
-              
-            </div>
+            <input
+              type="text"
+              name="mapEmbedUrl"
+              value={formData.mapEmbedUrl}
+              onChange={handleChange}
+              placeholder="Enter Google Maps embed URL"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
 
           {/* Contact Info */}
@@ -430,13 +458,13 @@ const EditHostelModal = ({ hostel, onClose, onUpdate }) => {  const [formData, s
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
+              className="px-6 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors"
             >
               Save Changes
             </button>
