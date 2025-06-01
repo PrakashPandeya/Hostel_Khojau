@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import api from '../api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { ToastContainer, toast } from 'react-toastify';
@@ -73,7 +74,7 @@ const HostelDetails = () => {
         };
 
         fetchHostelDetails();
-    }, [id, imageTimestamp]); // Added imageTimestamp as dependency
+    }, [id, imageTimestamp]); 
 
     useEffect(() => {
         if (showChat && token && userId) {
@@ -144,9 +145,8 @@ const HostelDetails = () => {
             return;
         }
 
-        try {
-            const response = await axios.post(
-                `/api/bookings/${id}/book`,
+        try {            const response = await api.post(
+                `/bookings/${id}/book`,
                 { roomId, checkInDate, totalMonthsStaying: months },
                 { headers: { 'x-auth-token': token } }
             );

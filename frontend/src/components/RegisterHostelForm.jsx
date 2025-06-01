@@ -131,10 +131,8 @@ const RegisterHostelForm = () => {
           'x-auth-token': token,
           'Content-Type': 'multipart/form-data'
         },
-      });
-
-      if (response.data) {
-        toast.success('Hostel registration submitted. Pending admin approval.');
+      });      if (response.data) {
+        toast.success('Hostel successfully registered');
         setTimeout(() => navigate('/owner/hostels'), 1000);
       }
     } catch (err) {
