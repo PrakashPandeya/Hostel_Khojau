@@ -23,10 +23,9 @@ router.post(
     }
 
     try {
-      const { roomId, checkInDate, totalMonthsStaying } = req.body;
-      const hostel = await Hostel.findById(req.params.hostelId);
-      if (!hostel || !hostel.isApproved) {
-        return res.status(404).json({ message: 'Hostel not found or not approved' });
+      const { roomId, checkInDate, totalMonthsStaying } = req.body;      const hostel = await Hostel.findById(req.params.hostelId);
+      if (!hostel) {
+        return res.status(404).json({ message: 'Hostel not found' });
       }
 
       const room = await Room.findById(roomId);

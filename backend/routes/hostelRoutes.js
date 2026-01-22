@@ -134,9 +134,8 @@ router.post(
         priceRange,
         contact,
         amenities,
-        mapEmbedUrl: req.body.mapEmbedUrl,
-        owner: req.user.id,
-        status: user.isApproved ? 'active' : 'pending',
+        mapEmbedUrl: req.body.mapEmbedUrl,        owner: req.user.id,
+        status: 'active',
         images: imageUrls,
         images360: image360Urls,
       };

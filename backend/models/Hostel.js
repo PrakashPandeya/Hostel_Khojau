@@ -50,10 +50,9 @@ const hostelSchema = new mongoose.Schema({
   bookings: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Booking'
-  }],
-  isApproved: {
+  }],  isApproved: {
     type: Boolean,
-    default: false
+    default: true
   },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
